@@ -113,9 +113,56 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- Sidebar: Technical Architecture ---
+# --- Sidebar: Technical Architecture & Settings ---
 with st.sidebar:
     st.markdown("### 🏛️ Directorate of Media Technology")
+    
+    with st.expander("🎚️ Advanced Audio Controls", expanded=True):
+        st.write("Determine sound balance and TTS speed.")
+        bg_lufs = st.slider(
+            "Original Background Loudness (LUFS)",
+            min_value=-40.0, max_value=-10.0, value=-25.0, step=1.0,
+            help="-25 LUFS is standard for 'ducking' audio heavily under speech. -40 essentially mutes the background."
+        )
+        fg_gain = st.slider(
+            "Translated Speech Boost (dB)",
+            min_value=-10.0, max_value=10.0, value=0.0, step=1.0,
+            help="Increase or decrease the loudness of the AI generated translated voice."
+        )
+        st.info("🗣️ **Voice Speed: Auto-Adjusted**\n\nThe pipeline automatically computes the ideal speed for each segment based on word count and available duration — no manual tuning needed.")
+
+    with st.expander("🌍 AI Translation Model", expanded=True):
+        st.write("Select translation engine:")
+        translation_model_choice = st.selectbox(
+            "Translation Model",
+            options=["Deep Translation (Free/Open)", "Sarvam AI (High Accuracy/Paid)"],
+            index=0,
+            label_visibility="collapsed"
+        )
+        sarvam_api_key = None
+        if translation_model_choice == "Sarvam AI (High Accuracy/Paid)":
+            sarvam_api_key = st.text_input(
+                "Sarvam AI Subscription Key",
+                type="password",
+                help="Required to use the Sarvam AI translation API."
+            )
+        internal_model_key = "sarvam_ai" if translation_model_choice == "Sarvam AI (High Accuracy/Paid)" else "deep_translator"
+
+    with st.expander("🤗 Speaker Diarization (Pyannote)", expanded=False):
+        st.write("Enable real multi-speaker detection via Hugging Face Pyannote.")
+        hf_token = st.text_input(
+            "Hugging Face Access Token",
+            type="password",
+            placeholder="hf_...",
+            help="Get your token at: https://hf.co/settings/tokens  Also accept the model at: https://hf.co/pyannote/speaker-diarization-3.1"
+        )
+        if hf_token:
+            st.success("✅ HF Token set — Pyannote diarization enabled!")
+        else:
+            st.info("ℹ️ No token — using single-speaker mode (SPEAKER_01).")
+
+    st.divider()
+    
     st.title("System Architecture")
     
     with st.expander("🎥 Stage 1: Media Ingest", expanded=False):
@@ -153,20 +200,40 @@ with col1:
     3. **Review**: Access the finalized official broadcast file with compliant multi-track subtitles.
     """)
 
+    with st.expander("🤖 AI Models & Tools Used", expanded=False):
+        st.markdown("""
+        **1. Faster-Whisper**
+        * **Purpose:** Speech Recognition & Translation
+        * **Description:** An optimized engine used to transcribe the original Kannada audio and natively translate it into high-accuracy English transcripts.
+        * **Steps:** Extract Audio `->` Perform Voice Activity Detection (VAD) `->` Generate English Text & Timestamps.
+
+        **2. Pyannote.audio**
+        * **Purpose:** Speaker Diarization
+        * **Description:** Neural network AI that detects multiple speakers in an audio track, allowing the pipeline to map translated dialogue back to the correct original speaker.
+        * **Steps:** Acoustic Feature Extraction `->` Speaker Segmentation `->` Clustering Speaker Turns.
+
+        **3. Deep-Translator (Free)**
+        * **Purpose:** Transcript Translation
+        * **Description:** Free, open-source AI translation service used to convert the baseline English transcript into other regional languages.
+        * **Steps:** Read English Transcript `->` Translation Execution `->` Output Target Transcript.
+
+        **4. Sarvam AI (Paid/High Accuracy)**
+        * **Purpose:** Contextual Translation
+        * **Description:** State-of-the-art regional LLM used for high-accuracy, context-aware translation of administrative English into Indian regional languages like Hindi.
+        * **Steps:** Format Payload `->` API Request (Indic LLM) `->` Parse Translated JSON.
+
+        **5. Coqui XTTSv2 (Local)**
+        * **Purpose:** Voice Cloning & Text-to-Speech (TTS)
+        * **Description:** A zero-shot voice generation model that replicates the original speaker's tone, pitch, and cadence into a new language using a dynamically selected, clean reference audio sample.
+        * **Steps:** Find Best Speaker Sample `->` Extract Acoustic Signature `->` Synthesize Translated Speech (Paced via TTS Speed).
+        
+        **6. FFmpeg & Pydub**
+        * **Purpose:** Audio Processing, Clarity & Multiplexing
+        * **Description:** Advanced audio engineering tools. Used for broadcast-quality voice clarity (EQ, Compression, Low/High Pass) and precise lip-syncing using chained `atempo` time-stretching.
+        * **Steps:** Enhance Voice Clarity `->` Apply Chained Atempo Stretch `->` Background Ducking `->` Multiplex Master Video.
+        """)
+
     uploaded_file = st.file_uploader("Upload Official Video File (.mp4, .mov)", type=["mp4", "mov", "mkv"])
-    
-    with st.expander("🎚️ Advanced Audio Controls", expanded=False):
-        st.write("Determine the sound balance between the original source audio and the newly synthesized speech.")
-        bg_lufs = st.slider(
-            "Original Background Loudness (LUFS)",
-            min_value=-40.0, max_value=-10.0, value=-25.0, step=1.0,
-            help="Higher means louder background. -25 LUFS is standard for 'ducking' audio heavily under speech. -40 essentially mutes the background."
-        )
-        fg_gain = st.slider(
-            "Translated Speech Boost (dB)",
-            min_value=-10.0, max_value=10.0, value=0.0, step=1.0,
-            help="Increase or decrease the loudness of the AI generated translated voice."
-        )
 
 with col2:
     if uploaded_file is not None:
@@ -186,7 +253,15 @@ with col2:
             progress_bar = st.progress(0)
             
             try:
-                pipeline = TranslationPipeline(work_dir=temp_dir, bg_lufs=bg_lufs, fg_gain=fg_gain)
+                pipeline = TranslationPipeline(
+                    work_dir=temp_dir, 
+                    bg_lufs=bg_lufs, 
+                    fg_gain=fg_gain,
+                    translation_model=internal_model_key,
+                    sarvam_api_key=sarvam_api_key,
+                    tts_speed=1.0,  # Auto-adjusted per segment in voice_service
+                    hf_token=hf_token if hf_token else None
+                )
                 
                 status_container.info("🔄 Processing National Assets (Multi-Language Generation)...")
                 progress_bar.progress(30)

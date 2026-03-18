@@ -9,15 +9,19 @@ from services.subtitle_service import SubtitleEngine
 from services.qc_service import QualityControlEngine
 
 class TranslationPipeline:
-    def __init__(self, work_dir="./workspace", bg_lufs=-25.0, fg_gain=0.0):
+    def __init__(self, work_dir="./workspace", bg_lufs=-25.0, fg_gain=0.0, translation_model="deep_translator", sarvam_api_key=None, tts_speed=1.1, hf_token=None):
         self.work_dir = Path(work_dir)
         self.work_dir.mkdir(exist_ok=True)
         self.bg_lufs = bg_lufs
         self.fg_gain = fg_gain
+        self.translation_model = translation_model
+        self.sarvam_api_key = sarvam_api_key
+        self.tts_speed = tts_speed
+        self.hf_token = hf_token
         
         self.video_service = VideoService(self.work_dir)
-        self.speech_service = SpeechService()
-        self.translation_service = TranslationEngine()
+        self.speech_service = SpeechService(hf_token=self.hf_token)
+        self.translation_service = TranslationEngine(model=self.translation_model, api_key=self.sarvam_api_key)
         self.voice_service = VoiceCloningService(self.work_dir)
         self.audio_mixer = AudioMixerEngine(self.work_dir)
         self.subtitle_engine = SubtitleEngine(self.work_dir)
@@ -58,7 +62,7 @@ class TranslationPipeline:
             
             # Generate speech
             cloned_audio_segments = self.voice_service.generate_speech(
-                transcript, reference_audio=audio_path, language=target_lang
+                transcript, reference_audio=audio_path, language=target_lang, speed=self.tts_speed
             )
             
             # Mix audio

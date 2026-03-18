@@ -55,7 +55,7 @@ class VideoService:
             "-i", input_video_path,
             "-i", mixed_audio_path,
             "-map", "0:v", "-map", "1:a",
-            "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+            "-c:v", "copy", "-c:a", "aac", "-ar", "44100", "-b:a", "192k",
             output_path
         ]
         
@@ -108,7 +108,7 @@ class VideoService:
 
         # 9. Codecs
         # Use aac for audio, copy for video, srt for subtitles (MKV supports SRT natively)
-        cmd.extend(["-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-c:s", "srt"])
+        cmd.extend(["-c:v", "copy", "-c:a", "aac", "-ar", "44100", "-b:a", "192k", "-c:s", "srt"])
         
         cmd.append(output_path)
         
