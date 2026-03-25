@@ -1,14 +1,32 @@
+# Git
+.git
+.gitignore
+
+# Python cache
 __pycache__
 *.pyc
 *.pyo
 *.pyd
 .Python
-env/
+*.egg-info
+dist/
+build/
+
+# Virtual environments
 venv/
-.env
-.venv
+.venv/
+env/
+
+# Workspace output (large generated files — mounted as volume)
 workspace/
-.git
-.gitignore
-Dockerfile
-docker-compose.yml
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

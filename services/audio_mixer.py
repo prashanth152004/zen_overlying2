@@ -58,117 +58,92 @@ class AudioMixerEngine:
     def _apply_lip_sync_stretch(self, audio_path: str, current_ms: int, target_ms: int, segment_idx: int) -> AudioSegment:
         """
         Apply precise atempo time-stretching for lip sync.
-        Supports stretch ratios in the range [0.25x – 4.0x] using chained atempo.
-        Applies stretch for ANY timing mismatch (no threshold).
+        Strips artificial TTS silence before stretching so audio perfectly matches original mouth boundaries.
         """
         if target_ms <= 0 or current_ms <= 0:
             return AudioSegment.from_file(audio_path)
 
-        ratio = current_ms / target_ms
+        audio = AudioSegment.from_file(audio_path)
+        
+        # --- Trim leading/trailing silence for accurate lip-sync ---
+        # TTS models often add ~200-500ms of dead air which ruins the lip-sync ratio
+        def trim_silence(sound: AudioSegment, threshold_db=-45.0, chunk_ms=10):
+            if len(sound) == 0:
+                return sound
+            start_trim = 0
+            for i in range(0, len(sound), chunk_ms):
+                if sound[i:i+chunk_ms].dBFS > threshold_db:
+                    start_trim = max(0, i - chunk_ms)
+                    break
+            end_trim = len(sound)
+            for i in range(len(sound), 0, -chunk_ms):
+                if sound[max(0, i-chunk_ms):i].dBFS > threshold_db:
+                    end_trim = min(len(sound), i + chunk_ms)
+                    break
+            return sound[start_trim:end_trim] if end_trim > start_trim else sound
 
-        # Clamp to supported range [0.25x – 4.0x]
-        ratio_clamped = max(0.25, min(4.0, ratio))
+        audio_trimmed = trim_silence(audio)
+        current_ms_trimmed = len(audio_trimmed)
 
-        if abs(ratio_clamped - 1.0) < 0.01:
-            # No meaningful stretch needed
-            return AudioSegment.from_file(audio_path)
+        if current_ms_trimmed <= 0:
+            return audio
+
+        ratio = current_ms_trimmed / target_ms
+
+        # To guarantee the lip-sync is "as good as original", we must stretch the trimmed
+        # speech to perfectly match the original video's target_ms.
+        # We allow a wide range [0.5x – 3.0x] so it perfectly matches visual mouth movements.
+        ratio_clamped = max(0.5, min(3.0, ratio))
+
+        if abs(ratio_clamped - 1.0) < 0.02:
+            return audio_trimmed
+
+        # Save trimmed clip so ffmpeg uses tightly cropped speech
+        trimmed_path = str(self.work_dir / f"trimmed_{segment_idx}.wav")
+        audio_trimmed.export(trimmed_path, format="wav")
 
         atempo_filter = self._build_atempo_filter(ratio_clamped)
         stretched_path = str(self.work_dir / f"stretched_{segment_idx}.wav")
 
-        print(f"[AudioMixerEngine] Lip-Sync segment {segment_idx}: ratio={ratio:.3f}x → filter '{atempo_filter}' ({current_ms}ms→{target_ms}ms)")
+        print(f"[AudioMixerEngine] Lip-Sync segment {segment_idx}: ratio={ratio:.3f}x → filter '{atempo_filter}' ({current_ms_trimmed}ms→{target_ms}ms)")
 
         ffmpeg_cmd = [
-            "ffmpeg", "-y", "-i", audio_path,
+            "ffmpeg", "-y", "-i", trimmed_path,
             "-filter:a", atempo_filter,
             stretched_path
         ]
         try:
             subprocess.run(ffmpeg_cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             stretched = AudioSegment.from_file(stretched_path)
-            print(f"[AudioMixerEngine] Lip-Sync success: {current_ms}ms → {len(stretched)}ms (target: {target_ms}ms)")
+            print(f"[AudioMixerEngine] Lip-Sync success: {current_ms_trimmed}ms → {len(stretched)}ms (target: {target_ms}ms)")
             return stretched
         except Exception as e:
             print(f"[AudioMixerEngine] WARNING: atempo failed for segment {segment_idx}: {e}. Using raw audio.")
-            return AudioSegment.from_file(audio_path)
-
-    def _apply_presence_boost(self, audio_data: np.ndarray, sr: int) -> np.ndarray:
-        """
-        Apply a +3dB peaking EQ boost in the 2–4kHz speech presence band.
-        This makes the dubbed voice cut through a mix more intelligibly.
-        Also apply a gentle de-essing notch at 6–8kHz to soften harsh sibilants.
-        """
-        nyquist = sr / 2.0
-
-        # --- Presence boost: 2–4kHz band-pass shelf (+3dB) ---
-        # We add a fraction of the bandpass signal back to the original
-        low_p, high_p = 2000.0 / nyquist, 4000.0 / nyquist
-        low_p = max(0.001, min(low_p, 0.999))
-        high_p = max(0.001, min(high_p, 0.999))
-        if low_p < high_p:
-            b_bp, a_bp = scipy.signal.butter(2, [low_p, high_p], btype='band')
-            presence_band = scipy.signal.lfilter(b_bp, a_bp, audio_data)
-            audio_data = audio_data + 0.4 * presence_band   # +~3dB boost
-
-        # --- De-essing: gentle notch at 6–8kHz ---
-        low_d, high_d = 6000.0 / nyquist, 8000.0 / nyquist
-        low_d = max(0.001, min(low_d, 0.999))
-        high_d = max(0.001, min(high_d, 0.999))
-        if low_d < high_d:
-            b_n, a_n = scipy.signal.butter(2, [low_d, high_d], btype='bandstop')
-            audio_data = scipy.signal.lfilter(b_n, a_n, audio_data)
-
-        print("[AudioMixerEngine] Presence boost (2–4kHz +3dB) and de-essing (6–8kHz notch) applied.")
-        return audio_data
+            return audio_trimmed
 
     def _enhance_voice_clarity(self, audio: AudioSegment) -> AudioSegment:
         """
-        Apply a multi-stage voice clarity enhancement chain to synthesized speech:
-        1. Normalize baseline volume
-        2. High-pass filter at 80Hz   — removes low rumble and TTS mud
-        3. Presence boost 2–4kHz      — makes speech intelligible and bright
-        4. De-essing 6–8kHz notch     — softens harsh sibilant artifacts from TTS
-        5. Low-pass filter at 14kHz   — removes unnatural synthetic hiss (raised from 12kHz)
-        6. Tighter dynamic compression— fast 2ms attack, evens out TTS amplitude spikes
-        7. Makeup normalize           — brings compressed signal back, with small headroom
+        Apply gentle voice clarity enhancement to maintain the natural, human tone.
+        We avoid heavy EQ and aggressive compression to keep the neural TTS sounding like the original.
         """
-        # 1. Normalize baseline
+        # 1. Normalize baseline to prevent clipping before processing
         audio = audio.normalize()
 
-        # 2. High-pass: remove low-frequency rumble/mud below 80Hz
-        audio = audio.high_pass_filter(80)
+        # 2. Gentle High-pass/Low-pass to clean up extreme sub-rumble and synthetic high-hiss
+        audio = audio.high_pass_filter(60)
+        audio = audio.low_pass_filter(15000)
 
-        # 3 & 4. Presence boost + De-essing (requires numpy/scipy processing)
-        samples = np.array(audio.get_array_of_samples(), dtype=np.float32)
-        # Normalize to float [-1, 1] for scipy
-        max_val = float(2 ** (audio.sample_width * 8 - 1))
-        samples = samples / max_val
-        if audio.channels == 2:
-            samples = samples.reshape(-1, 2)
-            samples[:, 0] = self._apply_presence_boost(samples[:, 0], audio.frame_rate)
-            samples[:, 1] = self._apply_presence_boost(samples[:, 1], audio.frame_rate)
-            samples = samples.flatten()
-        else:
-            samples = self._apply_presence_boost(samples, audio.frame_rate)
-        # Clip and convert back to integer samples
-        samples = np.clip(samples, -1.0, 1.0)
-        samples_int = (samples * max_val).astype(np.int16)
-        audio = audio._spawn(samples_int.tobytes())
-
-        # 5. Low-pass: remove harsh synthetic hiss above 14kHz (raised from 12kHz)
-        audio = audio.low_pass_filter(14000)
-
-        # 6. Compression: tighter for TTS (threshold=-20dB, ratio=3.5, fast attack=2ms)
+        # 3. Light dynamic compression just to even out TTS spikes, keeping it natural
         audio = compress_dynamic_range(
             audio,
-            threshold=-20.0,
-            ratio=3.5,
-            attack=2.0,
-            release=80.0
+            threshold=-15.0,
+            ratio=2.0,
+            attack=5.0,
+            release=50.0
         )
 
-        # 7. Makeup gain: normalize with -0.5dBFS headroom to prevent clipping in mix
-        audio = audio.normalize(headroom=0.5)
+        # 4. Final slight normalize to ensure it fits the mix perfectly (-1.0dBFS headroom)
+        audio = audio.normalize(headroom=1.0)
 
         return audio
 

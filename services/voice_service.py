@@ -58,9 +58,27 @@ _LANG_TTS_PARAMS = {
     # Default fallback for unsupported or unknown languages
     '_default': {'syllables_per_word': 1.8, 'natural_rate_sps': 3.0},
 }
+
+# Per-language BASE speed — the natural starting speed before per-segment fine-tuning.
+# Each language has a culturally calibrated pace: English is brisk, Kannada is measured, etc.
+_LANG_BASE_SPEED = {
+    'en':    1.05,  # English: slightly brisk, matches natural fast English pace
+    'hi':    1.00,  # Hindi: neutral — Devanagari TTS already well-paced
+    'kn':    0.92,  # Kannada: dense agglutinative words — needs more room to breathe
+    'ta':    0.94,  # Tamil: similar density to Kannada
+    'te':    0.95,  # Telugu
+    'ml':    0.93,  # Malayalam: very dense conjunct clusters
+    'mr':    0.98,  # Marathi
+    'gu':    1.00,  # Gujarati
+    'ar':    0.97,  # Arabic
+    'zh-cn': 1.10,  # Mandarin: monosyllabic, can go faster
+    'ja':    1.02,  # Japanese
+    'ko':    1.02,  # Korean
+    '_default': 1.0,
+}
 # XTTS safe speed clamping range
 _MIN_SPEED = 0.85
-_MAX_SPEED = 1.35
+_MAX_SPEED = 1.45
 
 # Pitch boundary between typical male and female F0 (Hz)
 # Males: 85–180 Hz, Females: 165–255 Hz  → threshold at 165 Hz
@@ -160,35 +178,44 @@ class VoiceCloningService:
                                base_speed: float, language: str = 'en') -> float:
         """
         Compute per-segment auto-speed calibrated to the target language.
-        Uses language-specific syllable density and natural speaking rate so the
-        TTS doesn't rush Kannada (dense) or drag English (compact).
+        Prioritizes natural-sounding speech over strict lip-sync timing.
         """
         if duration_sec <= 0.5:
             return base_speed
 
-        params = _LANG_TTS_PARAMS.get(language, _LANG_TTS_PARAMS['_default'])
-        syllables_per_word = params['syllables_per_word']
-        natural_rate_sps = params['natural_rate_sps']   # syllables per second
-
+        # Character-based syllable estimation for better accuracy in Indic/Asian languages
+        char_count = len(text.replace(" ", ""))
         word_count = len(text.split())
-        syllable_count = word_count * syllables_per_word
-        # Time the TTS would naturally take at neutral speed for this language
-        estimated_natural_duration = syllable_count / (natural_rate_sps * base_speed)
+        
+        if language == 'en':
+            syllable_count = word_count * 1.5
+            natural_rate_sps = 4.0
+        elif language in ['hi', 'mr', 'gu', 'bn']:
+            syllable_count = char_count * 0.5  # ~2 chars per syllable natively
+            natural_rate_sps = 4.0
+        elif language in ['kn', 'ta', 'te', 'ml']:
+            syllable_count = char_count * 0.45 # Agglutinative, dense words
+            natural_rate_sps = 4.5
+        else:
+            syllable_count = word_count * 2.0
+            natural_rate_sps = 4.0
+
+        estimated_natural_duration = syllable_count / natural_rate_sps
 
         if estimated_natural_duration <= 0:
             return base_speed
 
-        ratio = estimated_natural_duration / duration_sec
-        auto_speed = base_speed * ratio
+        # The speed required to fit into the original video duration
+        required_speed = (estimated_natural_duration / duration_sec) * base_speed
 
-        # 70% auto-adjust, 30% baseline to prevent extreme values
-        # Allows for an automatic but balanced voice speed without speaking too fast or distorted
-        blended_speed = 0.7 * auto_speed + 0.3 * base_speed
-        clamped_speed = max(_MIN_SPEED, min(_MAX_SPEED, blended_speed))
+        # 40% forcing to fit time, 60% natural speed (more natural, less chipmunk)
+        blended_speed = 0.4 * required_speed + 0.6 * base_speed
+        
+        # Allow up to 1.45x for TTS frameworks which handle speedups okay natively
+        clamped_speed = max(0.85, min(1.45, blended_speed))
         
         print(f"[VoiceCloningService] [{language}] Speed: {clamped_speed:.3f}x "
-              f"(words={word_count}, syl/w={syllables_per_word}, "
-              f"rate={natural_rate_sps}sps, dur={duration_sec:.1f}s, auto={auto_speed:.3f})")
+              f"(chars={char_count}, required={required_speed:.3f}, dur={duration_sec:.1f}s)")
         return clamped_speed
 
     def _generate_with_edge_tts(self, text: str, language: str, gender: str,
@@ -269,6 +296,11 @@ class VoiceCloningService:
         else:
             gender_sample_map = {}
 
+        # Select the language-specific base speed — each language has its own natural pace.
+        # This replaces the single pipeline-level speed value with a per-language calibrated one.
+        lang_base_speed = _LANG_BASE_SPEED.get(language, _LANG_BASE_SPEED['_default'])
+        print(f"[VoiceCloningService] [{language}] Using language base speed: {lang_base_speed:.2f}x")
+
         cloned_segments = []
         for i, segment in enumerate(transcript):
             text = segment.get("text", "").strip()
@@ -278,9 +310,9 @@ class VoiceCloningService:
 
             out_path = str(self.cloned_dir / f"segment_{i}.wav")
             segment_duration = segment["end"] - segment["start"]
-            # Language-aware speed: uses per-language syllable density & speaking rate
+            # Fine-tune per-segment speed using the language-specific base (not the generic pipeline speed)
             segment_speed = self._compute_segment_speed(
-                text, segment_duration, base_speed=speed, language=language
+                text, segment_duration, base_speed=lang_base_speed, language=language
             )
 
             # Detect gender of this specific segment

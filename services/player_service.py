@@ -37,7 +37,6 @@ def get_netflix_player_html(videos_dict, subtitles_dict, default_audio="English 
 <html>
 <head>
   <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
-  <link href="https://unpkg.com/@videojs/themes@1/dist/city/index.css" rel="stylesheet">
   <style>
     body {{
       margin: 0;
@@ -48,6 +47,7 @@ def get_netflix_player_html(videos_dict, subtitles_dict, default_audio="English 
       justify-content: center;
       align-items: center;
       height: 100vh;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     }}
     .video-js {{
       width: 100%;
@@ -56,14 +56,13 @@ def get_netflix_player_html(videos_dict, subtitles_dict, default_audio="English 
     /* Consolidated Menu Container */
     .vjs-netflix-menu {{
       position: absolute;
-      bottom: 4em;
-      right: 20px;
+      bottom: 55px; /* Just above the control bar */
+      right: 40px;
       background: rgba(0, 0, 0, 0.85);
       border-radius: 4px;
       padding: 20px;
       display: none;
       color: white;
-      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
       z-index: 1001;
       min-width: 400px;
       backdrop-filter: blur(10px);
@@ -101,54 +100,36 @@ def get_netflix_player_html(videos_dict, subtitles_dict, default_audio="English 
     }}
     .menu-item.active {{
       font-weight: bold;
+      color: #e50914;
     }}
     .menu-item.active::before {{
       content: '✓';
       margin-right: 8px;
     }}
-    /* Custom button styling */
-    .vjs-netflix-btn, .vjs-seek-btn {{
+    /* Custom button in control bar */
+    .custom-netflix-trigger {{
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 1.5em;
+      transition: transform 0.2s, text-shadow 0.2s;
+    }}
+    .custom-netflix-trigger:hover {{
+      transform: scale(1.1);
+      text-shadow: 0 0 8px rgba(255,255,255,0.8);
     }}
     /* Subtitle positioning */
     .video-js .vjs-text-track-display {{
       bottom: 4em;
     }}
-    
-    /* Netflix layout specifics - Order of elements */
-    .vjs-play-toggle {{
-        order: 0;
-    }}
-    .vjs-seek-back-btn {{
-        order: 1;
-    }}
-    .vjs-seek-forward-btn {{
-        order: 2;
-    }}
-    .vjs-volume-panel {{
-        order: 3;
-    }}
-    /* Push rest to right */
-    .vjs-spacer {{
-        order: 4;
-    }}
-    .vjs-remaining-time-display {{
-        order: 5;
-    }}
-    .vjs-netflix-btn {{
-        order: 6;
-    }}
-    .vjs-fullscreen-toggle {{
-        order: 7;
-    }}
   </style>
 </head>
 <body>
-  <div style="position: relative; width: 100%; height: 100%;">
+  <div style="position: relative; width: 100%; height: 100%;" id="player-wrapper">
     <video
       id="netflix-player"
-      class="video-js vjs-theme-city"
+      class="video-js vjs-default-skin"
       controls
       preload="auto"
       autoplay
@@ -238,22 +219,34 @@ def get_netflix_player_html(videos_dict, subtitles_dict, default_audio="English 
           var newTime = Math.min(player.duration(), player.currentTime() + 10);
           player.currentTime(newTime);
       };
-      
-      // Add custom consolidated button for Audio and Subtitles
-      var btn = controlBar.addChild('button', {
-        className: 'vjs-netflix-btn vjs-control vjs-button'
-      });
-      btn.el().innerHTML = '<span aria-hidden="true" class="vjs-icon-placeholder">💬</span><span class="vjs-control-text">Audio and Subtitles</span>';
-      
+
+      // Inject Audio/Subtitle Menu Toggle directly into DOM control bar
       var menu = document.getElementById('netflix-menu');
+      var controlBarEl = document.querySelector('.vjs-control-bar');
+      var customBtn = null;
       
-      btn.el().onclick = function(e) {
-        e.stopPropagation();
-        menu.classList.toggle('show');
-      };
+      if (controlBarEl) {
+          customBtn = document.createElement('div');
+          customBtn.className = 'vjs-control vjs-button custom-netflix-trigger';
+          customBtn.title = 'Audio and Subtitles';
+          customBtn.innerHTML = '<span aria-hidden="true" style="font-size: 1.2em;">💬</span>';
+          
+          customBtn.onclick = function(e) {
+              e.stopPropagation();
+              menu.classList.toggle('show');
+          };
+          
+          // Insert right before the fullscreen control if it exists
+          var fsBtn = document.querySelector('.vjs-fullscreen-control');
+          if (fsBtn) {
+              controlBarEl.insertBefore(customBtn, fsBtn);
+          } else {
+              controlBarEl.appendChild(customBtn);
+          }
+      }
       
       document.addEventListener('click', function(e) {
-        if (!menu.contains(e.target) && !btn.el().contains(e.target)) {
+        if (!menu.contains(e.target) && (!customBtn || !customBtn.contains(e.target))) {
           menu.classList.remove('show');
         }
       });

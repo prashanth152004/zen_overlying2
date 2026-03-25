@@ -212,7 +212,7 @@ with st.sidebar:
 col1, col2 = st.columns([2, 1])
 
 with col1:
-    st.title("National Portal for Civic Media Translation")
+    st.title("Video Translation")
     st.subheader("Official Platform for Regional Video Processing")
     
     st.markdown("""
