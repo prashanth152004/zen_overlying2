@@ -32,8 +32,8 @@ The overarching pipeline process is completely automated:
 ### Option A: Local Installation
 ```bash
 # Clone the repository
-git clone https://github.com/prashanth152004/video_overlying.git
-cd video_overlying
+git clone https://github.com/prashanth152004/zen_overlying_new.git
+cd zen_overlying_new
 
 # Install dependencies
 pip install -r requirements.txt

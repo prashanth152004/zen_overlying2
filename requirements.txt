@@ -5,6 +5,9 @@ faster-whisper==1.0.3        # Stage 2: Fast local ASR
 pyannote.audio>=3.3.1        # Stage 2: Speaker Diarization
 TTS==0.22.0                  # Stage 4: Coqui XTTSv2 Voice Cloning
 deep-translator==1.11.4      # Stage 3: Free Translation (Google Translate fallback)
+gtts>=2.5.0                  # Stage 4: Fallback TTS for XTTS-unsupported languages (e.g. Kannada)
+librosa>=0.10.0              # Stage 4: Pitch/F0 analysis for speaker gender detection
+edge-tts>=6.1.0              # Stage 4: Gender-specific neural TTS for Indic languages
 
 # Audio Processing
 pydub==0.25.1                # Stage 5: Audio mixing, EQ

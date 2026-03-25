@@ -6,6 +6,10 @@ _BATCH_DELIMITER = " ||| "
 # Number of consecutive segments to batch for context continuity
 _BATCH_SIZE = 5
 
+# Languages where deep-translator (Google) supports the target
+# (Google Translate supports kn = Kannada)
+_DEEP_TRANSLATOR_SUPPORTED = {"en", "hi", "kn"}
+
 
 class TranslationEngine:
     def __init__(self, model="deep_translator", api_key=None):
@@ -17,26 +21,19 @@ class TranslationEngine:
     # ─────────────────────────────────────────────────────────────
 
     def _chunk_text(self, text: str, max_chars: int = 480) -> list:
-        """
-        Split text into chunks of at most max_chars, preferring sentence/word boundaries.
-        Sarvam AI has a ~500 char per-request limit.
-        """
+        """Split text into chunks ≤ max_chars preferring sentence/word boundaries."""
         if len(text) <= max_chars:
             return [text]
-        
+
         chunks = []
-        # Try to split on sentence boundaries first
         sentences = text.replace("। ", "।\n").replace(". ", ".\n").split("\n")
-        
         current_chunk = ""
         for sentence in sentences:
             sentence = sentence.strip()
             if not sentence:
                 continue
-            # If a single sentence exceeds the limit, split it further by words
             if len(sentence) > max_chars:
-                words = sentence.split(" ")
-                for word in words:
+                for word in sentence.split():
                     if len(current_chunk) + len(word) + 1 > max_chars:
                         if current_chunk:
                             chunks.append(current_chunk.strip())
@@ -49,44 +46,30 @@ class TranslationEngine:
                 current_chunk = sentence
             else:
                 current_chunk = f"{current_chunk} {sentence}".strip()
-        
         if current_chunk:
             chunks.append(current_chunk.strip())
-        
         return chunks
 
-    def _translate_with_sarvam(self, text: str, target_lang: str) -> str:
+    def _translate_with_sarvam(self, text: str, target_lang: str, speaker_gender: str = "Male") -> str:
         if not self.api_key:
             print("[TranslationEngine] No Sarvam API Key — falling back to deep-translator.")
             return self._translate_with_deep_translator(text, target_lang)
 
         url = "https://api.sarvam.ai/translate"
-
-        # Map internal lang codes to Sarvam BCP-47 codes
         lang_map = {
-            "hi": "hi-IN",
-            "en": "en-IN",
-            "kn": "kn-IN",
-            "ta": "ta-IN",
-            "te": "te-IN",
-            "ml": "ml-IN",
-            "bn": "bn-IN",
-            "gu": "gu-IN",
-            "mr": "mr-IN",
-            "pa": "pa-IN",
-            "od": "or-IN",
+            "hi": "hi-IN", "en": "en-IN", "kn": "kn-IN",
+            "ta": "ta-IN", "te": "te-IN", "ml": "ml-IN",
+            "bn": "bn-IN", "gu": "gu-IN", "mr": "mr-IN",
+            "pa": "pa-IN", "od": "or-IN",
         }
         sarvam_target_lang = lang_map.get(target_lang, f"{target_lang}-IN")
-
-        # Use code-mixed mode for Hindi (better naturalness), formal for others
-        translation_mode = "code-mixed" if target_lang == "hi" else "formal"
+        # Ensure we always get full native script (Devanagari/Kannada) rather than code-mixed.
+        translation_mode = "formal"
 
         headers = {
             "Content-Type": "application/json",
             "api-subscription-key": self.api_key
         }
-
-        # Chunk text to stay within Sarvam's 500-char per-request limit
         chunks = self._chunk_text(text, max_chars=480)
         translated_chunks = []
 
@@ -95,21 +78,19 @@ class TranslationEngine:
                 "input": chunk,
                 "source_language_code": "en-IN",
                 "target_language_code": sarvam_target_lang,
-                "speaker_gender": "Male",
+                "speaker_gender": speaker_gender,
                 "mode": translation_mode,
                 "model": "mayura:v1",
                 "enable_preprocessing": True,
             }
-
-            # Retry up to 3 times with exponential backoff
-            translated_chunk = chunk  # fallback: keep original
+            translated_chunk = chunk
             for attempt in range(3):
                 try:
                     response = requests.post(url, json=payload, headers=headers, timeout=15)
                     if response.status_code == 200:
                         result = response.json()
                         translated_chunk = result.get("translated_text", chunk)
-                        print(f"[TranslationEngine] Sarvam ✓ chunk ({len(chunk)}c): '{chunk[:30]}' → '{translated_chunk[:30]}'")
+                        print(f"[TranslationEngine] Sarvam ✓ ({len(chunk)}c): '{chunk[:30]}' → '{translated_chunk[:30]}'")
                         break
                     elif response.status_code == 429:
                         wait = 2 ** attempt
@@ -124,31 +105,30 @@ class TranslationEngine:
                 except Exception as e:
                     print(f"[TranslationEngine] Sarvam exception: {e}")
                     break
-
             translated_chunks.append(translated_chunk)
 
         return " ".join(translated_chunks)
 
     # ─────────────────────────────────────────────────────────────
-    # DEEP TRANSLATOR  — single segment
+    # DEEP TRANSLATOR — single segment
     # ─────────────────────────────────────────────────────────────
 
     def _translate_with_deep_translator(self, text: str, target_lang: str) -> str:
         from deep_translator import GoogleTranslator
+        # Google Translate uses 'kn' for Kannada, 'hi' for Hindi, 'en' for English
         translator = GoogleTranslator(source="en", target=target_lang)
         try:
-            translated_text = translator.translate(text)
+            translated = translator.translate(text)
             time.sleep(0.1)
-            return translated_text if translated_text else text
+            return translated if translated else text
         except Exception as e:
             print(f"[TranslationEngine] deep-translator error: {e}")
             return text
 
     def _translate_batch_with_deep_translator(self, texts: list, target_lang: str) -> list:
         """
-        Translate a batch of consecutive segments joined by a delimiter so the
-        AI sees sentence context across segment boundaries, producing more fluent output.
-        Falls back to per-segment translation if batch parsing fails.
+        Batch-translate consecutive segments joined by ||| for context continuity.
+        Falls back to per-segment if batch parsing fails.
         """
         from deep_translator import GoogleTranslator
         joined = _BATCH_DELIMITER.join(texts)
@@ -157,23 +137,14 @@ class TranslationEngine:
             translated_joined = translator.translate(joined)
             time.sleep(0.15)
             if not translated_joined:
-                raise ValueError("Empty response from Google Translate")
-
-            # Split result back by delimiter
-            parts = translated_joined.split("|||")
-            # Clean whitespace
-            parts = [p.strip() for p in parts]
-
+                raise ValueError("Empty response")
+            parts = [p.strip() for p in translated_joined.split("|||")]
             if len(parts) == len(texts):
                 return parts
-
-            # Mismatch: fall back to per-segment so we never lose a segment
-            print(f"[TranslationEngine] Batch split mismatch ({len(parts)} vs {len(texts)}). "
-                  f"Falling back to per-segment for this batch.")
+            print(f"[TranslationEngine] Batch split mismatch ({len(parts)} vs {len(texts)}). Falling back.")
             return [self._translate_with_deep_translator(t, target_lang) for t in texts]
-
         except Exception as e:
-            print(f"[TranslationEngine] Batch translation error: {e}. Falling back per-segment.")
+            print(f"[TranslationEngine] Batch error: {e}. Falling back per-segment.")
             return [self._translate_with_deep_translator(t, target_lang) for t in texts]
 
     # ─────────────────────────────────────────────────────────────
@@ -181,58 +152,59 @@ class TranslationEngine:
     # ─────────────────────────────────────────────────────────────
 
     def _clean_translated_text(self, text: str) -> str:
-        """Remove stray delimiters, fix double spaces, strip leading/trailing whitespace."""
-        text = text.replace("|||", "").replace("  ", " ").strip()
-        return text
+        return text.replace("|||", "").replace("  ", " ").strip()
 
     # ─────────────────────────────────────────────────────────────
     # PUBLIC API
     # ─────────────────────────────────────────────────────────────
 
-    def translate_transcript(self, transcript: list, source="en", target="en") -> list:
-        """Translate text segments. If target is 'en', pass-through (Whisper already translated)."""
-        if target == "en":
-            print(f"[TranslationEngine] Pass-through ({len(transcript)} segments, already in English).")
+    def translate_transcript(self, transcript: list, source="en", target="en", speaker_gender: str = "Male") -> list:
+        """
+        Translate transcript segments from source → target.
+        Pass-through if source == target (no translation needed).
+        Supports: en, hi, kn.
+
+        Args:
+            speaker_gender: 'Male' or 'Female' — used by Sarvam AI for gender-appropriate phrasing.
+        """
+        if source == target:
+            print(f"[TranslationEngine] Pass-through — source == target == '{target}' ({len(transcript)} segs).")
             return transcript
 
-        print(f"[TranslationEngine] Translating {len(transcript)} segments → '{target}' "
-              f"using '{self.model}' (batch_size={_BATCH_SIZE})...")
+        print(f"[TranslationEngine] Translating {len(transcript)} segments "
+              f"'{source}' → '{target}' using '{self.model}' (batch_size={_BATCH_SIZE}, gender={speaker_gender})...")
 
         translated_transcript = []
 
-        # ── Deep Translator: batch for context continuity ──────────────────────
+        # ── Deep Translator: batched for context ─────────────────────────
         if self.model != "sarvam_ai":
-            # Process in batches of _BATCH_SIZE
             i = 0
             while i < len(transcript):
-                batch = transcript[i : i + _BATCH_SIZE]
+                batch = transcript[i: i + _BATCH_SIZE]
                 batch_texts = [seg["text"] for seg in batch]
-
-                print(f"[TranslationEngine] Batch translating segments {i}–{i+len(batch)-1} "
-                      f"({len(batch)} segs) → '{target}'")
+                print(f"[TranslationEngine] Batch {i}–{i+len(batch)-1} ({len(batch)} segs) → '{target}'")
                 translated_texts = self._translate_batch_with_deep_translator(batch_texts, target)
-
                 for j, seg in enumerate(batch):
-                    clean_text = self._clean_translated_text(translated_texts[j])
                     translated_transcript.append({
                         "start": seg["start"],
                         "end": seg["end"],
                         "speaker_id": seg.get("speaker_id", "SPEAKER_01"),
-                        "text": clean_text
+                        "speaker_gender": seg.get("speaker_gender", speaker_gender),
+                        "text": self._clean_translated_text(translated_texts[j])
                     })
                 i += _BATCH_SIZE
 
-        # ── Sarvam AI: per-segment (its chunking already handles context) ──────
+        # ── Sarvam AI: per-segment with gender ────────────────────────────
         else:
             for segment in transcript:
-                original_text = segment["text"]
-                translated_text = self._translate_with_sarvam(original_text, target)
-                clean_text = self._clean_translated_text(translated_text)
+                seg_gender = segment.get("speaker_gender", speaker_gender)
+                translated_text = self._translate_with_sarvam(segment["text"], target, seg_gender)
                 translated_transcript.append({
                     "start": segment["start"],
                     "end": segment["end"],
                     "speaker_id": segment.get("speaker_id", "SPEAKER_01"),
-                    "text": clean_text
+                    "speaker_gender": seg_gender,
+                    "text": self._clean_translated_text(translated_text)
                 })
 
         return translated_transcript

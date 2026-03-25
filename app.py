@@ -148,6 +148,28 @@ with st.sidebar:
             )
         internal_model_key = "sarvam_ai" if translation_model_choice == "Sarvam AI (High Accuracy/Paid)" else "deep_translator"
 
+    with st.expander("🌐 Input Language", expanded=True):
+        st.write("Select the language spoken in the uploaded video.")
+        lang_choice = st.selectbox(
+            "Input Language",
+            options=["🔍 Auto-Detect", "🇮🇳 Kannada", "🇬🇧 English", "🇮🇳 Hindi"],
+            index=0,
+            label_visibility="collapsed",
+            help="Auto-Detect uses Whisper to identify the spoken language automatically."
+        )
+        _LANG_MAP = {
+            "🔍 Auto-Detect": None,
+            "🇮🇳 Kannada": "kn",
+            "🇬🇧 English": "en",
+            "🇮🇳 Hindi": "hi",
+        }
+        source_lang = _LANG_MAP[lang_choice]
+        if source_lang is None:
+            st.info("ℹ️ Whisper will auto-detect the spoken language and translate to the other two languages.")
+        else:
+            _TARGETS = {"kn": "English & Hindi", "en": "Hindi & Kannada", "hi": "English & Kannada"}
+            st.success(f"✅ Will translate to **{_TARGETS[source_lang]}**.")
+
     with st.expander("🤗 Speaker Diarization (Pyannote)", expanded=False):
         st.write("Enable real multi-speaker detection via Hugging Face Pyannote.")
         hf_token = st.text_input(
@@ -195,9 +217,10 @@ with col1:
     
     st.markdown("""
     ### Processing Guidelines:
-    1. **Upload**: Submit the official Kannada civic feedback or address video.
-    2. **Process**: The National AI Pipeline will transcribe, translate, and synthesize the English and Hindi equivalents simultaneously.
-    3. **Review**: Access the finalized official broadcast file with compliant multi-track subtitles.
+    1. **Upload**: Submit a video in Kannada, English, or Hindi.
+    2. **Detect**: The AI auto-detects the spoken language (or use the sidebar to specify it).
+    3. **Process**: The National AI Pipeline transcribes, translates, and synthesizes dubs in the other two languages simultaneously.
+    4. **Review**: Access the finalized broadcast file with multi-track audio and subtitles.
     """)
 
     with st.expander("🤖 AI Models & Tools Used", expanded=False):
@@ -254,13 +277,14 @@ with col2:
             
             try:
                 pipeline = TranslationPipeline(
-                    work_dir=temp_dir, 
-                    bg_lufs=bg_lufs, 
+                    work_dir=temp_dir,
+                    bg_lufs=bg_lufs,
                     fg_gain=fg_gain,
                     translation_model=internal_model_key,
                     sarvam_api_key=sarvam_api_key,
                     tts_speed=1.0,  # Auto-adjusted per segment in voice_service
-                    hf_token=hf_token if hf_token else None
+                    hf_token=hf_token if hf_token else None,
+                    source_lang=source_lang,  # None = auto-detect
                 )
                 
                 status_container.info("🔄 Processing National Assets (Multi-Language Generation)...")
@@ -269,8 +293,12 @@ with col2:
                 results = pipeline.run(in_path)
                 
                 progress_bar.progress(100)
-                status_container.success("✅ Multi-Language Media Generation Complete!")
-                
+                detected_name = results.get("lang_name", "Unknown")
+                target_names = [k.replace(" Dub", "") for k in results["videos"] if "Dub" in k]
+                status_container.success(
+                    f"✅ Detected: **{detected_name}** → Translated to: **{', '.join(target_names)}**"
+                )
+
                 # Store results in session_state so UI interactions don't reload the pipeline
                 st.session_state["pipeline_results"] = results
                 st.session_state["uploaded_filename"] = uploaded_file.name
@@ -285,19 +313,23 @@ if "pipeline_results" in st.session_state:
     st.markdown("### 🎬 Official Output Media Player")
     
     results = st.session_state["pipeline_results"]
-    
-    # Load subtitle dictionaries based on our keys
-    subtitle_dict = {}
-    if "en" in results["subtitles"]:
-        subtitle_dict["English"] = results["subtitles"]["en"]
-    if "hi" in results["subtitles"]:
-        subtitle_dict["Hindi"] = results["subtitles"]["hi"]
-    
+
+    # Build subtitle dict dynamically from all available subtitle tracks
+    _SUB_LABEL = {"en": "English", "hi": "Hindi", "kn": "Kannada"}
+    subtitle_dict = {
+        _SUB_LABEL.get(code, code.upper()): path
+        for code, path in results["subtitles"].items()
+    }
+
+    # Default player track: first Dub track (or first track overall)
+    dub_tracks = [k for k in results["videos"] if "Dub" in k]
+    default_audio = dub_tracks[0] if dub_tracks else list(results["videos"].keys())[0]
+
     # Generate custom Netflix-style HTML
     player_html = get_netflix_player_html(
         videos_dict=results["videos"],
         subtitles_dict=subtitle_dict,
-        default_audio="English Dub"
+        default_audio=default_audio
     )
     
     # Render full width player
@@ -322,18 +354,21 @@ if "pipeline_results" in st.session_state:
         st.divider()
         st.markdown("##### Individual Track Downloads")
 
-    dl_cols = st.columns(len(results["videos"]))
-    
-    for i, (audio_track, video_path) in enumerate(results["videos"].items()):
-        with dl_cols[i]:
-            with open(video_path, "rb") as file:
-                st.download_button(
-                    label=f"⬇️ Download {audio_track}",
-                    data=file,
-                    file_name=f"{audio_track.replace(' ', '_')}_{st.session_state['uploaded_filename']}",
-                    mime="video/mp4",
-                    use_container_width=True
-                )
-            
+    # Download buttons in rows of 3 (handles variable number of tracks)
+    track_items = list(results["videos"].items())
+    for row_start in range(0, len(track_items), 3):
+        row_tracks = track_items[row_start: row_start + 3]
+        dl_cols = st.columns(len(row_tracks))
+        for i, (audio_track, video_path) in enumerate(row_tracks):
+            with dl_cols[i]:
+                with open(video_path, "rb") as file:
+                    st.download_button(
+                        label=f"⬇️ {audio_track}",
+                        data=file,
+                        file_name=f"{audio_track.replace(' ', '_')}_{st.session_state['uploaded_filename']}",
+                        mime="video/mp4",
+                        use_container_width=True
+                    )
+
     with st.expander("📊 Official Data Processing Report"):
         st.json(results["qc_report"])

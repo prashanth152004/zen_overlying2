@@ -1,5 +1,9 @@
 import os
+import io
 import torch
+import asyncio
+import numpy as np
+import soundfile as sf
 from pathlib import Path
 from pydub import AudioSegment
 from TTS.api import TTS
@@ -14,11 +18,81 @@ try:
 except ImportError:
     pass
 
-# Average syllables per word in English/Hindi TTS output (tuned empirically)
-_AVG_SYLLABLES_PER_WORD = 1.5
-# XTTS safe speed range
+# Languages officially supported by XTTSv2 voice cloning model
+_XTTS_SUPPORTED = {
+    'en', 'es', 'fr', 'de', 'it', 'pt', 'pl', 'tr', 'ru',
+    'nl', 'cs', 'ar', 'zh-cn', 'hu', 'ko', 'ja', 'hi'
+}
+
+# Edge-TTS voice names per language per gender
+# Edge-TTS supports gender-specific neural voices for Kannada and other Indic languages
+_EDGE_TTS_VOICES = {
+    'kn': {'male': 'kn-IN-GaganNeural',   'female': 'kn-IN-SapnaNeural'},
+    'ta': {'male': 'ta-IN-ValluvarNeural', 'female': 'ta-IN-PallaviNeural'},
+    'te': {'male': 'te-IN-MohanNeural',    'female': 'te-IN-ShrutiNeural'},
+    'ml': {'male': 'ml-IN-MidhunNeural',   'female': 'ml-IN-SobhanaNeural'},
+    'bn': {'male': 'bn-IN-BashkarNeural',  'female': 'bn-IN-TanishaaNeural'},
+    'gu': {'male': 'gu-IN-NiranjanNeural', 'female': 'gu-IN-DhwaniNeural'},
+    'mr': {'male': 'mr-IN-ManoharNeural',  'female': 'mr-IN-AarohiNeural'},
+}
+
+# Default edge-tts fallback if language not in map
+_EDGE_TTS_DEFAULT = {'male': 'en-IN-PrabhatNeural', 'female': 'en-IN-NeerjaNeural'}
+
+# Per-language TTS parameters — syllable density and natural speaking rate
+# syllables_per_word: avg syllables per translated word in that language
+# natural_rate_sps:   syllables per second at a comfortable natural pace
+# These calibrate the auto-speed formula so each language sounds natural
+_LANG_TTS_PARAMS = {
+    'en': {'syllables_per_word': 1.5, 'natural_rate_sps': 3.3},  # English: short, fast
+    'hi': {'syllables_per_word': 2.1, 'natural_rate_sps': 2.8},  # Hindi: moderate density
+    'kn': {'syllables_per_word': 2.5, 'natural_rate_sps': 2.4},  # Kannada: dense, slower
+    'ta': {'syllables_per_word': 2.4, 'natural_rate_sps': 2.5},  # Tamil
+    'te': {'syllables_per_word': 2.3, 'natural_rate_sps': 2.6},  # Telugu
+    'mr': {'syllables_per_word': 2.0, 'natural_rate_sps': 2.9},  # Marathi
+    'gu': {'syllables_per_word': 1.9, 'natural_rate_sps': 3.0},  # Gujarati
+    'ar': {'syllables_per_word': 2.0, 'natural_rate_sps': 2.8},  # Arabic
+    'zh-cn': {'syllables_per_word': 1.0, 'natural_rate_sps': 3.8},  # Mandarin: 1 char ≈ 1 syllable
+    'ja': {'syllables_per_word': 1.8, 'natural_rate_sps': 3.2},  # Japanese
+    'ko': {'syllables_per_word': 1.7, 'natural_rate_sps': 3.2},  # Korean
+    # Default fallback for unsupported or unknown languages
+    '_default': {'syllables_per_word': 1.8, 'natural_rate_sps': 3.0},
+}
+# XTTS safe speed clamping range
 _MIN_SPEED = 0.85
 _MAX_SPEED = 1.35
+
+# Pitch boundary between typical male and female F0 (Hz)
+# Males: 85–180 Hz, Females: 165–255 Hz  → threshold at 165 Hz
+_GENDER_PITCH_THRESHOLD_HZ = 165.0
+
+
+def _detect_gender_from_audio(audio_path: str, start: float, end: float) -> str:
+    """
+    Estimate speaker gender using fundamental frequency (F0) analysis.
+    Analyses a slice of the audio between start–end seconds.
+
+    Uses librosa's yin algorithm for F0 estimation.
+    Returns 'male' or 'female'.
+    """
+    try:
+        import librosa
+        y, sr = librosa.load(audio_path, sr=16000, offset=start, duration=min(end - start, 10.0), mono=True)
+        if len(y) < sr * 0.5:
+            return 'male'  # too short to analyse — default
+        # YIN algorithm: accurate for speech F0
+        f0 = librosa.yin(y, fmin=60, fmax=400, sr=sr)
+        # Filter out zeros (unvoiced frames)
+        voiced_f0 = f0[f0 > 60]
+        if len(voiced_f0) == 0:
+            return 'male'
+        median_f0 = float(np.median(voiced_f0))
+        gender = 'female' if median_f0 >= _GENDER_PITCH_THRESHOLD_HZ else 'male'
+        print(f"[GenderDetect] {start:.1f}s–{end:.1f}s | median F0={median_f0:.1f}Hz → {gender}")
+        return gender
+    except Exception as e:
+        print(f"[GenderDetect] Failed: {e}. Defaulting to 'male'.")
+        return 'male'
 
 
 class VoiceCloningService:
@@ -26,153 +100,249 @@ class VoiceCloningService:
         self.work_dir = work_dir
         self.cloned_dir = self.work_dir / "cloned_audio"
         self.cloned_dir.mkdir(exist_ok=True)
-        # Assuming CUDA if available otherwise CPU
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        
+
         print("[VoiceCloningService] Loading XTTSv2 Voice Cloning model... This may take a while")
         self.tts = TTS(model_name="tts_models/multilingual/multi-dataset/xtts_v2").to(self.device)
 
     def extract_speaker_sample(self, reference_audio: str, start: float, end: float) -> str:
         """Extract a small clean sample of the speaker for cloning, filtering out background noise."""
         audio = AudioSegment.from_file(reference_audio)
-        sample = audio[start * 1000 : end * 1000]
-        
-        # Pre-process the reference sample so the AI doesn't clone background noise/muddiness
-        # 1. Normalize the volume so the model hears the voice clearly
+        sample = audio[start * 1000: end * 1000]
         sample = sample.normalize()
-        # 2. High-pass filter to remove low rumble, wind noise, mic bumps
         sample = sample.high_pass_filter(100)
-        # 3. Low-pass filter to remove high-frequency background hiss/static
         sample = sample.low_pass_filter(8000)
-        
         sample_path = str(self.work_dir / f"sample_{start}_{end}.wav")
         sample.export(sample_path, format="wav")
         return sample_path
 
-    def _pick_best_speaker_sample(self, transcript: list, reference_audio: str) -> str:
-        """Pick the longest available clean speaker segment as the default reference (capped at 12s)."""
-        best_start, best_end = 0.0, 0.0
-        best_duration = 0.0
-        for seg in transcript:
-            dur = seg["end"] - seg["start"]
-            if dur > best_duration and dur <= 12.0:
-                best_duration = dur
-                best_start = seg["start"]
-                best_end = seg["end"]
-        
-        # If no good segment found, fall back to first 10 seconds
-        if best_duration < 3.0:
-            best_start, best_end = 0.0, min(10.0, 10.0)
-        
-        print(f"[VoiceCloningService] Best speaker reference sample: {best_start:.1f}s → {best_end:.1f}s ({best_duration:.1f}s)")
-        return self.extract_speaker_sample(reference_audio, best_start, best_end)
-
-    def _compute_segment_speed(self, text: str, duration_sec: float, base_speed: float) -> float:
+    def _build_gender_sample_map(self, transcript: list, reference_audio: str) -> dict:
         """
-        Compute the ideal TTS speed so the synthesized speech fits naturally within
-        the original segment duration.
+        Build gender-keyed reference sample map: {'male': path, 'female': path}.
+        Analyses each segment with a duration ≥ 3s, detects gender, and picks the
+        best (longest) audio clip for each gender.
+        Falls back to the single best sample if only one gender is detected.
+        """
+        gender_best = {'male': None, 'female': None}
+        gender_best_dur = {'male': 0.0, 'female': 0.0}
 
-        Strategy:
-          1. Estimate how many seconds the text would take at base_speed (using XTTS
-             average of ~3.2 syllables/sec at speed=1.0).
-          2. Compute ratio = estimated_duration / available_duration.
-          3. Clamp to [_MIN_SPEED, _MAX_SPEED] to stay within XTTS safe range.
-          4. Blend 70% auto + 30% base so user baseline still has some influence.
+        for seg in transcript:
+            dur = seg['end'] - seg['start']
+            if dur < 3.0 or dur > 15.0:
+                continue
+            gender = _detect_gender_from_audio(reference_audio, seg['start'], seg['end'])
+            if dur > gender_best_dur[gender]:
+                gender_best_dur[gender] = dur
+                try:
+                    sample_end = min(seg['start'] + 12.0, seg['end'])
+                    gender_best[gender] = self.extract_speaker_sample(
+                        reference_audio, seg['start'], sample_end
+                    )
+                except Exception as e:
+                    print(f"[VoiceCloningService] Failed extracting {gender} sample: {e}")
+
+        # Fallback: if one gender wasn't found, use the other for both
+        fallback = gender_best.get('male') or gender_best.get('female')
+        if fallback is None:
+            # Ultimate fallback: use first 10s
+            fallback = self.extract_speaker_sample(reference_audio, 0.0, 10.0)
+        if gender_best['male'] is None:
+            gender_best['male'] = fallback
+        if gender_best['female'] is None:
+            gender_best['female'] = fallback
+
+        print(f"[VoiceCloningService] Gender sample map: "
+              f"male={'✓' if gender_best['male'] else '✗'}, "
+              f"female={'✓' if gender_best['female'] else '✗'}")
+        return gender_best
+
+    def _compute_segment_speed(self, text: str, duration_sec: float,
+                               base_speed: float, language: str = 'en') -> float:
+        """
+        Compute per-segment auto-speed calibrated to the target language.
+        Uses language-specific syllable density and natural speaking rate so the
+        TTS doesn't rush Kannada (dense) or drag English (compact).
         """
         if duration_sec <= 0.5:
-            return base_speed  # too short to compute meaningfully
+            return base_speed
+
+        params = _LANG_TTS_PARAMS.get(language, _LANG_TTS_PARAMS['_default'])
+        syllables_per_word = params['syllables_per_word']
+        natural_rate_sps = params['natural_rate_sps']   # syllables per second
 
         word_count = len(text.split())
-        syllable_count = word_count * _AVG_SYLLABLES_PER_WORD
-        # At speed=1.0, XTTS speaks ~3.2 syllables/second
-        estimated_natural_duration = syllable_count / (3.2 * base_speed)
+        syllable_count = word_count * syllables_per_word
+        # Time the TTS would naturally take at neutral speed for this language
+        estimated_natural_duration = syllable_count / (natural_rate_sps * base_speed)
 
         if estimated_natural_duration <= 0:
             return base_speed
 
         ratio = estimated_natural_duration / duration_sec
-        # Blend: favour auto-computed but let the user baseline nudge it slightly
         auto_speed = base_speed * ratio
+
+        # 70% auto-adjust, 30% baseline to prevent extreme values
+        # Allows for an automatic but balanced voice speed without speaking too fast or distorted
         blended_speed = 0.7 * auto_speed + 0.3 * base_speed
         clamped_speed = max(_MIN_SPEED, min(_MAX_SPEED, blended_speed))
-
-        print(f"[VoiceCloningService] Per-segment speed: {clamped_speed:.3f}x "
-              f"(words={word_count}, dur={duration_sec:.1f}s, estimated={estimated_natural_duration:.1f}s, "
-              f"auto={auto_speed:.3f}, base={base_speed:.2f})")
+        
+        print(f"[VoiceCloningService] [{language}] Speed: {clamped_speed:.3f}x "
+              f"(words={word_count}, syl/w={syllables_per_word}, "
+              f"rate={natural_rate_sps}sps, dur={duration_sec:.1f}s, auto={auto_speed:.3f})")
         return clamped_speed
+
+    def _generate_with_edge_tts(self, text: str, language: str, gender: str,
+                                out_path: str, speed: float = 1.0) -> bool:
+        """
+        Generate speech using Microsoft Edge TTS (neural voices).
+        Supports gender-specific voices and language-calibrated speaking rate.
+        The `speed` parameter comes from _compute_segment_speed (language-aware).
+        Edge-TTS accepts rate as a percentage string e.g. '+10%' or '-5%'.
+        """
+        try:
+            import edge_tts
+            voices = _EDGE_TTS_VOICES.get(language, _EDGE_TTS_DEFAULT)
+            voice_name = voices.get(gender, voices.get('male'))
+
+            # Convert speed multiplier to Edge-TTS rate percentage
+            # speed=1.0 → '+0%', speed=1.2 → '+20%', speed=0.9 → '-10%'
+            rate_pct = int(round((speed - 1.0) * 100))
+            rate_str = f"+{rate_pct}%" if rate_pct >= 0 else f"{rate_pct}%"
+
+            async def _run():
+                communicate = edge_tts.Communicate(text=text, voice=voice_name, rate=rate_str)
+                mp3_data = b""
+                async for chunk in communicate.stream():
+                    if chunk["type"] == "audio":
+                        mp3_data += chunk["data"]
+                return mp3_data
+
+            mp3_data = asyncio.run(_run())
+            if not mp3_data:
+                raise ValueError("Edge-TTS returned empty audio")
+
+            # Convert MP3 bytes → WAV via pydub
+            audio = AudioSegment.from_file(io.BytesIO(mp3_data), format="mp3")
+            audio.export(out_path, format="wav")
+            print(f"[VoiceCloningService] Edge-TTS ✓ voice='{voice_name}' gender='{gender}'")
+            return True
+        except Exception as e:
+            print(f"[VoiceCloningService] Edge-TTS failed ({e}), falling back to gTTS")
+            return self._generate_with_gtts_fallback(text, language, out_path)
+
+    def _generate_with_gtts_fallback(self, text: str, language: str, out_path: str) -> bool:
+        """Last-resort fallback using gTTS (no gender control)."""
+        try:
+            from gtts import gTTS
+            tts_obj = gTTS(text=text, lang=language, slow=False)
+            mp3_buffer = io.BytesIO()
+            tts_obj.write_to_fp(mp3_buffer)
+            mp3_buffer.seek(0)
+            audio = AudioSegment.from_file(mp3_buffer, format="mp3")
+            audio.export(out_path, format="wav")
+            print(f"[VoiceCloningService] gTTS fallback ✓ language='{language}'")
+            return True
+        except Exception as e:
+            print(f"[VoiceCloningService] gTTS also failed: {e}")
+            return False
 
     def generate_speech(self, transcript: list, reference_audio: str, language: str = "en", speed: float = 1.0) -> list:
         """
-        Generate speech cloned from the original speaker voice with automatic
-        per-segment speed adjustment so each clip fits the original video timing.
+        Generate gender-aware speech for each segment.
 
-        Args:
-            speed: Baseline TTS speed multiplier (used as an anchor for per-segment
-                   auto-speed blending). 1.0 = neutral.
+        For XTTS-supported languages (en, hi…):
+          - Detect each segment's speaker gender via pitch analysis
+          - Select a gender-matched XTTS reference sample so the cloned voice
+            sounds like the correct gender.
+
+        For XTTS-unsupported languages (kn, ta, te…):
+          - Use Edge-TTS neural voices (gender-specific: e.g. kn-IN-GaganNeural ♂,
+            kn-IN-SapnaNeural ♀) — no voice cloning, but correct gender voice.
         """
+        use_xtts = language in _XTTS_SUPPORTED
         print(f"[VoiceCloningService] Generating {language} speech for {len(transcript)} segments "
-              f"(base_speed={speed}, auto-speed per segment enabled)...")
-        
-        # Pick the best (longest/cleanest) speaker sample from the transcript for reference
-        default_sample = self._pick_best_speaker_sample(transcript, reference_audio)
+              f"(xtts={'yes' if use_xtts else 'no/edge-tts'}, auto-speed enabled)...")
+
+        # Build gender-keyed reference sample map (for XTTS languages)
+        if use_xtts:
+            gender_sample_map = self._build_gender_sample_map(transcript, reference_audio)
+        else:
+            gender_sample_map = {}
 
         cloned_segments = []
         for i, segment in enumerate(transcript):
             text = segment.get("text", "").strip()
             if not text:
-                print(f"[VoiceCloningService] Skipping empty text for segment {i}")
+                print(f"[VoiceCloningService] Skipping empty segment {i}")
                 continue
 
             out_path = str(self.cloned_dir / f"segment_{i}.wav")
-            
-            # --- Auto-speed: compute per-segment ideal speed ---
             segment_duration = segment["end"] - segment["start"]
-            segment_speed = self._compute_segment_speed(text, segment_duration, base_speed=speed)
+            # Language-aware speed: uses per-language syllable density & speaking rate
+            segment_speed = self._compute_segment_speed(
+                text, segment_duration, base_speed=speed, language=language
+            )
 
-            # Extract a dynamic sample for this specific segment to better match speaker tone
-            current_sample = default_sample
-            if segment_duration >= 3.0:
-                # XTTS prefers >3s samples for good cloning
+            # Detect gender of this specific segment
+            segment_gender = _detect_gender_from_audio(
+                reference_audio, segment["start"], segment["end"]
+            )
+            print(f"[VoiceCloningService] Segment {i}: '{text[:35]}…' "
+                  f"| gender={segment_gender} | speed={segment_speed:.3f}")
+
+            # ── XTTS-supported language: gender-matched voice cloning ──────────
+            if use_xtts:
+                # Use the gender-matching reference sample
+                reference_sample = gender_sample_map.get(segment_gender, gender_sample_map.get('male'))
+
+                # Also try a dynamic sample from this exact segment if it's long enough
+                if segment_duration >= 3.0:
+                    try:
+                        sample_end = min(segment["start"] + 12.0, segment["end"])
+                        dynamic_sample = self.extract_speaker_sample(
+                            reference_audio, segment["start"], sample_end
+                        )
+                        # Only use dynamic sample if it matches the detected gender
+                        seg_gender_check = _detect_gender_from_audio(
+                            reference_audio, segment["start"], min(segment["start"] + 5.0, segment["end"])
+                        )
+                        if seg_gender_check == segment_gender:
+                            reference_sample = dynamic_sample
+                    except Exception as e:
+                        print(f"[VoiceCloningService] Dynamic sample failed: {e}")
+
+                if not reference_sample or not os.path.exists(reference_sample):
+                    print(f"[VoiceCloningService] ERROR: No valid reference sample for segment {i}")
+                    continue
+
                 try:
-                    sample_end = min(segment["start"] + 12.0, segment["end"])
-                    current_sample = self.extract_speaker_sample(reference_audio, segment["start"], sample_end)
-                except Exception as e:
-                    print(f"[VoiceCloningService] Failed to extract dynamic sample for segment {i}, "
-                          f"falling back to best sample. Error: {e}")
-            
-            print(f"[VoiceCloningService] Generating segment {i}: '{text[:40]}...' "
-                  f"(speed={segment_speed:.3f}, dur={segment_duration:.1f}s)")
-            
-            if not os.path.exists(current_sample):
-                print(f"[VoiceCloningService] ERROR: Speaker sample not found at {current_sample}")
-                raise FileNotFoundError(f"Speaker sample missing: {current_sample}")
+                    self.tts.tts_to_file(
+                        text=text,
+                        speaker_wav=reference_sample,
+                        language=language,
+                        file_path=out_path,
+                        speed=segment_speed
+                    )
+                except TypeError:
+                    self.tts.tts_to_file(
+                        text=text, speaker_wav=reference_sample,
+                        language=language, file_path=out_path
+                    )
+                except (AssertionError, Exception) as e:
+                    print(f"[VoiceCloningService] XTTS error seg {i}: {e} → Edge-TTS fallback")
+                    if not self._generate_with_edge_tts(text, language, segment_gender, out_path, speed=segment_speed):
+                        continue
 
-            # Use original voice to speak translated text with auto-computed speed
-            try:
-                self.tts.tts_to_file(
-                    text=text,
-                    speaker_wav=current_sample,
-                    language=language,
-                    file_path=out_path,
-                    speed=segment_speed
-                )
-            except TypeError:
-                # Older TTS versions may not support speed parameter — fallback gracefully
-                print(f"[VoiceCloningService] WARNING: This TTS version does not support 'speed'. Using default.")
-                self.tts.tts_to_file(
-                    text=text,
-                    speaker_wav=current_sample,
-                    language=language,
-                    file_path=out_path
-                )
-            except Exception as e:
-                print(f"[VoiceCloningService] TTS failed for segment {i}: {e}")
-                raise e
-            
+            # ── Non-XTTS language (Kannada etc.): gender-specific Edge-TTS ───
+            else:
+                if not self._generate_with_edge_tts(text, language, segment_gender, out_path, speed=segment_speed):
+                    continue
+
             cloned_segments.append({
                 "start": segment["start"],
                 "end": segment["end"],
-                "audio_path": out_path
+                "audio_path": out_path,
+                "gender": segment_gender
             })
-            
+
         return cloned_segments

@@ -157,8 +157,13 @@ def get_netflix_player_html(videos_dict, subtitles_dict, default_audio="English 
       """
       
     # Add subtitle tracks
+    # Dynamic lang-code mapping for subtitle tracks
+    _SUBTITLE_CODE_MAP = {
+        "English": "en", "Hindi": "hi", "Kannada": "kn",
+        "en": "en", "hi": "hi", "kn": "kn",
+    }
     for lang, uri in subtitle_uris.items():
-        lang_code = "en" if lang == "English" else "hi" if lang == "Hindi" else "kn"
+        lang_code = _SUBTITLE_CODE_MAP.get(lang, lang[:2].lower())
         html_content += f"""
       <track kind="captions" src="{uri}" srclang="{lang_code}" label="{lang}" />"""
         

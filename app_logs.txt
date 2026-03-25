@@ -1,0 +1,762 @@
+
+  You can now view your Streamlit app in your browser.
+
+  Local URL: http://localhost:8501
+  Network URL: http://10.1.12.31:8501
+
+  For better performance, install the Watchdog module:
+
+  $ xcode-select --install
+  $ pip install watchdog
+            
+/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/transformers/utils/generic.py:311: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+2026-03-12 09:20:01.019 Examining the path of torch.classes raised: Tried to instantiate class '__path__._path', but it does not exist! Ensure that it is registered via torch::class_
+2026-03-12 09:20:01.164 Examining the path of torch.classes raised: Tried to instantiate class '__path__._path', but it does not exist! Ensure that it is registered via torch::class_
+objc[4164]: Class AVFFrameReceiver is implemented in both /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/av/.dylibs/libavdevice.60.3.100.dylib (0x11b710760) and /opt/homebrew/Cellar/ffmpeg/8.0.1/lib/libavdevice.62.1.100.dylib (0x16f3c0328). One of the two will be used. Which one is undefined.
+objc[4164]: Class AVFAudioReceiver is implemented in both /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/av/.dylibs/libavdevice.60.3.100.dylib (0x11b7107b0) and /opt/homebrew/Cellar/ffmpeg/8.0.1/lib/libavdevice.62.1.100.dylib (0x16f3c0378). One of the two will be used. Which one is undefined.
+[SpeechService] Loading Faster-Whisper 'small' model...
+[SpeechService] Initializing Pyannote Speaker Diarization...
+[SpeechService] Failed to initialize Pyannote (Invalid Token?): module 'torchaudio' has no attribute 'set_audio_backend'
+[VoiceCloningService] Loading XTTSv2 Voice Cloning model... This may take a while
+ > tts_models/multilingual/multi-dataset/xtts_v2 is already downloaded.
+ > Using model: xtts
+--- Starting Pipeline for workspace/BDA Kannada.mp4 (Multi-track Output) ---
+Stage 1: Video Ingest & Audio Extraction
+[VideoService] Ingested video: 816x464 @ 24.0fps, 67.79s
+[VideoService] Audio extracted to workspace/extracted_audio.wav
+Stage 2: Kannada Speech Recognition & Diarization
+[SpeechService] Transcribing workspace/extracted_audio.wav in kn with timestamps...
+[SpeechService] Segment: 30.18s - 31.58s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 47.24s - 48.64s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 53.08s - 54.48s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 54.48s - 56.52s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 56.52s - 56.56s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 56.56s - 57.20s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 57.20s - 59.04s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 59.04s - 59.08s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 59.08s - 59.14s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 59.64s - 59.88s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 59.88s - 60.04s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 60.04s - 60.50s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 60.50s - 60.52s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 60.52s - 60.60s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 60.96s - 61.20s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 61.20s - 61.22s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 61.22s - 61.24s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 61.24s - 61.46s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 61.46s - 61.86s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 61.86s - 61.92s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 61.92s - 61.94s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 61.94s - 62.24s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 62.24s - 62.26s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 62.26s - 62.30s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 62.30s - 62.68s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 62.68s - 62.96s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 62.96s - 63.00s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 63.00s - 63.22s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 63.22s - 63.24s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 63.24s - 63.26s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 63.26s - 63.36s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 63.36s - 63.42s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 63.42s - 63.44s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 63.44s - 63.52s [SPEAKER_01] | Text:  ,...
+[SpeechService] Segment: 63.90s - 64.02s [SPEAKER_01] | Text:  ,...
+--- Processing Target: en ---
+[TranslationEngine] Passing through 35 segments (translation handled by Whisper)...
+[VoiceCloningService] Generating en speech for 35 segments...
+[VoiceCloningService] Generating segment 0: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 3.003977060317993
+ > Real-time factor: 1.8085871062694339
+[VoiceCloningService] Generating segment 1: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 8.162115097045898
+ > Real-time factor: 1.3810208555084567
+[VoiceCloningService] Generating segment 2: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 3.392815113067627
+ > Real-time factor: 1.3715820849798543
+[VoiceCloningService] Generating segment 3: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 4.034739971160889
+ > Real-time factor: 1.453693077844732
+[VoiceCloningService] Generating segment 4: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 5.166296005249023
+ > Real-time factor: 1.5776205810400643
+[VoiceCloningService] Generating segment 5: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 1.8818471431732178
+ > Real-time factor: 1.4336211134248706
+[VoiceCloningService] Generating segment 6: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 3.7296340465545654
+ > Real-time factor: 1.4799602419833027
+[VoiceCloningService] Generating segment 7: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 3.3586459159851074
+ > Real-time factor: 1.332748028496106
+[VoiceCloningService] Generating segment 8: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 3.3282358646392822
+ > Real-time factor: 1.3206809821353327
+[VoiceCloningService] Generating segment 9: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 2.701917886734009
+ > Real-time factor: 1.453955715601447
+[VoiceCloningService] Generating segment 10: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 3.046980857849121
+ > Real-time factor: 1.3454407224361806
+[VoiceCloningService] Generating segment 11: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 2.915663003921509
+ > Real-time factor: 1.3425152279583459
+[VoiceCloningService] Generating segment 12: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 3.5134410858154297
+ > Real-time factor: 1.3386676793998864
+[VoiceCloningService] Generating segment 13: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 3.8656210899353027
+ > Real-time factor: 1.3209295969667962
+[VoiceCloningService] Generating segment 14: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 2.659675121307373
+ > Real-time factor: 1.3550331891133913
+[VoiceCloningService] Generating segment 15: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 5.015862941741943
+ > Real-time factor: 1.3249925467870647
+[VoiceCloningService] Generating segment 16: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 2.289777994155884
+ > Real-time factor: 1.3785934024447695
+[VoiceCloningService] Generating segment 17: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 2.5646309852600098
+ > Real-time factor: 1.3800789053344205
+[VoiceCloningService] Generating segment 18: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 4.9952898025512695
+ > Real-time factor: 1.3401077981586467
+[VoiceCloningService] Generating segment 19: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 2.037872314453125
+ > Real-time factor: 1.3495640477442157
+[VoiceCloningService] Generating segment 20: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 2.0467851161956787
+ > Real-time factor: 1.3554664768174771
+[VoiceCloningService] Generating segment 21: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 2.4570789337158203
+ > Real-time factor: 1.3560920726980836
+[VoiceCloningService] Generating segment 22: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 2.109816074371338
+ > Real-time factor: 1.3555199428871794
+[VoiceCloningService] Generating segment 23: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 2.923603057861328
+ > Real-time factor: 1.3461712208871175
+[VoiceCloningService] Generating segment 24: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 3.0122082233428955
+ > Real-time factor: 1.3579324363082852
+[VoiceCloningService] Generating segment 25: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 11.723986864089966
+ > Real-time factor: 1.3737878919372488
+[VoiceCloningService] Generating segment 26: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 5.254212141036987
+ > Real-time factor: 1.334739374537622
+[VoiceCloningService] Generating segment 27: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 1.729203224182129
+ > Real-time factor: 1.3782869828374764
+[VoiceCloningService] Generating segment 28: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 2.096649169921875
+ > Real-time factor: 1.3470604369690367
+[VoiceCloningService] Generating segment 29: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 7.693615198135376
+ > Real-time factor: 1.3494671560303315
+[VoiceCloningService] Generating segment 30: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 6.060420989990234
+ > Real-time factor: 1.317976594102934
+[VoiceCloningService] Generating segment 31: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 4.328184127807617
+ > Real-time factor: 1.321688178846637
+[VoiceCloningService] Generating segment 32: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 2.4946510791778564
+ > Real-time factor: 1.3424213270175647
+[VoiceCloningService] Generating segment 33: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 2.987583875656128
+ > Real-time factor: 1.3468315435520448
+[VoiceCloningService] Generating segment 34: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 2.3755948543548584
+ > Real-time factor: 1.3913585459659112
+[AudioMixerEngine] Mixing Cloned Translated and Original Kannada audio (BG: -25.0 LUFS, FG: 0.0 dB)...
+[AudioMixerEngine] Overlaying 35 translated segments...
+[AudioMixerEngine] Lip-Sync adjusting segment 0: ratio 1.09x (Current: 1526ms, Target: 1400ms)
+[AudioMixerEngine] Success: Stretched audio to 1382ms using [atempo=1.0900]
+[AudioMixerEngine] Mixing segment 0 at 30180ms (Duration: 1382ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 1: ratio 3.88x (Current: 5430ms, Target: 1400ms)
+[AudioMixerEngine] Success: Stretched audio to 1376ms using [atempo=2.0,atempo=1.9393]
+[AudioMixerEngine] Mixing segment 1 at 47240ms (Duration: 1376ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 2: ratio 1.62x (Current: 2273ms, Target: 1400ms)
+[AudioMixerEngine] Success: Stretched audio to 1387ms using [atempo=1.6236]
+[AudioMixerEngine] Mixing segment 2 at 53080ms (Duration: 1387ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 3: ratio 1.25x (Current: 2550ms, Target: 2040ms)
+[AudioMixerEngine] Success: Stretched audio to 2022ms using [atempo=1.2500]
+[AudioMixerEngine] Mixing segment 3 at 54480ms (Duration: 2022ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 4: ratio 75.22x (Current: 3009ms, Target: 40ms)
+[AudioMixerEngine] Success: Stretched audio to 726ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 4 at 56520ms (Duration: 726ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 5: ratio 1.88x (Current: 1206ms, Target: 640ms)
+[AudioMixerEngine] Success: Stretched audio to 638ms using [atempo=1.8844]
+[AudioMixerEngine] Mixing segment 5 at 56560ms (Duration: 638ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 6: ratio 1.26x (Current: 2315ms, Target: 1840ms)
+[AudioMixerEngine] Success: Stretched audio to 1826ms using [atempo=1.2582]
+[AudioMixerEngine] Mixing segment 6 at 57200ms (Duration: 1826ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 7: ratio 57.88x (Current: 2315ms, Target: 40ms)
+[AudioMixerEngine] Success: Stretched audio to 566ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 7 at 59040ms (Duration: 566ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 8: ratio 38.58x (Current: 2315ms, Target: 60ms)
+[AudioMixerEngine] Success: Stretched audio to 566ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 8 at 59080ms (Duration: 566ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 9: ratio 7.11x (Current: 1707ms, Target: 240ms)
+[AudioMixerEngine] Success: Stretched audio to 406ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 9 at 59640ms (Duration: 406ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 10: ratio 13.01x (Current: 2081ms, Target: 160ms)
+[AudioMixerEngine] Success: Stretched audio to 502ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 10 at 59880ms (Duration: 502ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 11: ratio 4.34x (Current: 1995ms, Target: 460ms)
+[AudioMixerEngine] Success: Stretched audio to 481ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 11 at 60040ms (Duration: 481ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 12: ratio 120.55x (Current: 2411ms, Target: 20ms)
+[AudioMixerEngine] Success: Stretched audio to 577ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 12 at 60500ms (Duration: 577ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 13: ratio 33.61x (Current: 2689ms, Target: 80ms)
+[AudioMixerEngine] Success: Stretched audio to 641ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 13 at 60520ms (Duration: 641ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 14: ratio 7.51x (Current: 1803ms, Target: 240ms)
+[AudioMixerEngine] Success: Stretched audio to 438ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 14 at 60960ms (Duration: 438ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 15: ratio 173.90x (Current: 3478ms, Target: 20ms)
+[AudioMixerEngine] Success: Stretched audio to 854ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 15 at 61200ms (Duration: 854ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 16: ratio 76.30x (Current: 1526ms, Target: 20ms)
+[AudioMixerEngine] Success: Stretched audio to 374ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 16 at 61220ms (Duration: 374ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 17: ratio 7.76x (Current: 1707ms, Target: 220ms)
+[AudioMixerEngine] Success: Stretched audio to 406ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 17 at 61240ms (Duration: 406ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 18: ratio 8.56x (Current: 3425ms, Target: 400ms)
+[AudioMixerEngine] Success: Stretched audio to 843ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 18 at 61460ms (Duration: 843ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 19: ratio 23.12x (Current: 1387ms, Target: 60ms)
+[AudioMixerEngine] Success: Stretched audio to 321ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 19 at 61860ms (Duration: 321ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 20: ratio 69.35x (Current: 1387ms, Target: 20ms)
+[AudioMixerEngine] Success: Stretched audio to 321ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 20 at 61920ms (Duration: 321ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 21: ratio 5.55x (Current: 1665ms, Target: 300ms)
+[AudioMixerEngine] Success: Stretched audio to 385ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 21 at 61940ms (Duration: 385ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 22: ratio 71.50x (Current: 1430ms, Target: 20ms)
+[AudioMixerEngine] Success: Stretched audio to 342ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 22 at 62240ms (Duration: 342ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 23: ratio 49.88x (Current: 1995ms, Target: 40ms)
+[AudioMixerEngine] Success: Stretched audio to 481ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 23 at 62260ms (Duration: 481ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 24: ratio 5.36x (Current: 2038ms, Target: 380ms)
+[AudioMixerEngine] Success: Stretched audio to 502ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 24 at 62300ms (Duration: 502ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 25: ratio 28.00x (Current: 7841ms, Target: 280ms)
+[AudioMixerEngine] Success: Stretched audio to 1953ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 25 at 62680ms (Duration: 1953ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 26: ratio 90.42x (Current: 3617ms, Target: 40ms)
+[AudioMixerEngine] Success: Stretched audio to 886ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 26 at 62960ms (Duration: 886ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 27: ratio 5.24x (Current: 1153ms, Target: 220ms)
+[AudioMixerEngine] Success: Stretched audio to 257ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 27 at 63000ms (Duration: 257ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 28: ratio 71.50x (Current: 1430ms, Target: 20ms)
+[AudioMixerEngine] Success: Stretched audio to 342ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 28 at 63220ms (Duration: 342ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 29: ratio 261.90x (Current: 5238ms, Target: 20ms)
+[AudioMixerEngine] Success: Stretched audio to 1291ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 29 at 63240ms (Duration: 1291ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 30: ratio 42.25x (Current: 4225ms, Target: 100ms)
+[AudioMixerEngine] Success: Stretched audio to 1025ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 30 at 63260ms (Duration: 1025ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 31: ratio 50.15x (Current: 3009ms, Target: 60ms)
+[AudioMixerEngine] Success: Stretched audio to 726ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 31 at 63360ms (Duration: 726ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 32: ratio 85.35x (Current: 1707ms, Target: 20ms)
+[AudioMixerEngine] Success: Stretched audio to 406ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 32 at 63420ms (Duration: 406ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 33: ratio 25.48x (Current: 2038ms, Target: 80ms)
+[AudioMixerEngine] Success: Stretched audio to 502ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 33 at 63440ms (Duration: 502ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 34: ratio 13.18x (Current: 1569ms, Target: 119ms)
+[AudioMixerEngine] Success: Stretched audio to 374ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 34 at 63900ms (Duration: 374ms)
+[SubtitleEngine] Generating .vtt subtitles for en...
+[VideoService] Fast-muxing audio (en_mixed) into video...
+[VideoService] Fast-muxing audio (en_fg) into video...
+--- Processing Target: hi ---
+[TranslationEngine] Translating 35 segments to hi using Sarvam AI...
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_7c4ef873-23f4-4a4a-adc5-16a1f97b605d"}}
+[TranslationEngine] Segment 30.18s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_8e62926d-3407-4bc8-931c-0254c39168fe"}}
+[TranslationEngine] Segment 47.24s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_2ba2647e-796d-4f7d-9ad7-4cd53afc2596"}}
+[TranslationEngine] Segment 53.08s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_9ef6994e-b02d-4dd5-b75b-869782303d57"}}
+[TranslationEngine] Segment 54.48s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_c8d0112d-6b69-4ba7-bca4-9d9758eb784b"}}
+[TranslationEngine] Segment 56.52s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_edb3eb29-45eb-4c40-ad33-7595437f89f8"}}
+[TranslationEngine] Segment 56.56s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_a68bc0c2-3bb1-4fe6-8528-4c35925e5daf"}}
+[TranslationEngine] Segment 57.20s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_3cda67db-a218-4136-a060-df586f21b937"}}
+[TranslationEngine] Segment 59.04s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_3d9ddf03-7c79-4c98-b3a4-f19f204846b6"}}
+[TranslationEngine] Segment 59.08s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_3adae89e-80d4-4bbc-9647-ac7412efd0eb"}}
+[TranslationEngine] Segment 59.64s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_32838077-14c4-4065-bd6c-88c95df8ba4a"}}
+[TranslationEngine] Segment 59.88s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_2f37b560-6144-4bdc-b94d-0de7f463d57e"}}
+[TranslationEngine] Segment 60.04s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_a4551edb-59a7-4fa8-ac6f-db3dd4e787b5"}}
+[TranslationEngine] Segment 60.50s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_19b9872d-72ca-4959-b108-d9805d8b2329"}}
+[TranslationEngine] Segment 60.52s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_769a3d24-778a-40a8-9d7c-3aa6faa82623"}}
+[TranslationEngine] Segment 60.96s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_166e9385-c85c-4ec9-804c-da977edf2f77"}}
+[TranslationEngine] Segment 61.20s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_5bf0aa19-6f4e-404d-abfb-eddd7b00ca2d"}}
+[TranslationEngine] Segment 61.22s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_5f463e62-e03b-4eda-8b05-48fc085eeb3f"}}
+[TranslationEngine] Segment 61.24s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_05a39632-4963-4650-85a9-c0f95a393cee"}}
+[TranslationEngine] Segment 61.46s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_6a2e96ed-0b52-4d56-b88b-08f5d58e2e1c"}}
+[TranslationEngine] Segment 61.86s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_c9074147-ffc6-4382-84b9-00e135a23e6e"}}
+[TranslationEngine] Segment 61.92s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_28d8f923-7374-440d-8ec2-745fa6e25c92"}}
+[TranslationEngine] Segment 61.94s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_eb26c0b3-9515-4d12-84aa-c6b0802abfa6"}}
+[TranslationEngine] Segment 62.24s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_97da692d-6625-415b-9872-33142861a6df"}}
+[TranslationEngine] Segment 62.26s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_24b36a9f-b903-4c52-8920-0bbce29f97a1"}}
+[TranslationEngine] Segment 62.30s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_0bad68f6-e8f6-43a6-83ed-3a6033435389"}}
+[TranslationEngine] Segment 62.68s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_dbf84b32-eeb9-4999-88a4-39276cc373d1"}}
+[TranslationEngine] Segment 62.96s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_db51cc54-0f1b-456a-aabd-05aa24170e0a"}}
+[TranslationEngine] Segment 63.00s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_15d3625a-ad9f-4f8f-976c-77bf0d330cbd"}}
+[TranslationEngine] Segment 63.22s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_ec5aaa4d-4d8d-450e-9995-b7c59ec5e76f"}}
+[TranslationEngine] Segment 63.24s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_0bf3df7d-3856-4b11-9c78-22366efdc52f"}}
+[TranslationEngine] Segment 63.26s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_edcd2071-4911-4502-88d7-cb116162d6ce"}}
+[TranslationEngine] Segment 63.36s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_a1f9fcd6-ec6e-4865-bbb7-bb1c3c033efa"}}
+[TranslationEngine] Segment 63.42s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_413c4051-a169-4200-a88c-3550a76043e6"}}
+[TranslationEngine] Segment 63.44s: ',...' -> ',...'
+[TranslationEngine] Sarvam API Error 400: {"error":{"message":"body.model : Input should be 'mayura:v1' or 'sarvam-translate:v1'","code":"invalid_request_error","request_id":"20260312_311e2532-d600-437e-9543-5a6065a5901f"}}
+[TranslationEngine] Segment 63.90s: ',...' -> ',...'
+[VoiceCloningService] Generating hi speech for 35 segments...
+[VoiceCloningService] Generating segment 0: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 9.58223295211792
+ > Real-time factor: 1.375431182911937
+[VoiceCloningService] Generating segment 1: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 2.5777978897094727
+ > Real-time factor: 1.387164278311545
+[VoiceCloningService] Generating segment 2: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 5.021092176437378
+ > Real-time factor: 1.3263739037095577
+[VoiceCloningService] Generating segment 3: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 7.676830768585205
+ > Real-time factor: 1.346523151706311
+[VoiceCloningService] Generating segment 4: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 11.735367059707642
+ > Real-time factor: 1.382645356002359
+[VoiceCloningService] Generating segment 5: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 7.974339008331299
+ > Real-time factor: 1.3387301676034318
+[VoiceCloningService] Generating segment 6: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 11.638007164001465
+ > Real-time factor: 1.4761738263128872
+[VoiceCloningService] Generating segment 7: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 7.634453773498535
+ > Real-time factor: 1.4139539855668148
+[VoiceCloningService] Generating segment 8: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 2.5536110401153564
+ > Real-time factor: 1.3325237465577342
+[VoiceCloningService] Generating segment 9: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 4.263411998748779
+ > Real-time factor: 1.3399121233239821
+[VoiceCloningService] Generating segment 10: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 9.656581163406372
+ > Real-time factor: 1.3769245644924373
+[VoiceCloningService] Generating segment 11: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 2.5613789558410645
+ > Real-time factor: 1.3783289236698426
+[VoiceCloningService] Generating segment 12: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 3.929879903793335
+ > Real-time factor: 1.370064695779203
+[VoiceCloningService] Generating segment 13: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 2.6618080139160156
+ > Real-time factor: 1.324775792408093
+[VoiceCloningService] Generating segment 14: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 2.6369669437408447
+ > Real-time factor: 1.3760204730567405
+[VoiceCloningService] Generating segment 15: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 3.5096628665924072
+ > Real-time factor: 1.3674736041907438
+[VoiceCloningService] Generating segment 16: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 6.917632102966309
+ > Real-time factor: 1.3448105151502954
+[VoiceCloningService] Generating segment 17: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 3.041614055633545
+ > Real-time factor: 1.3430709293239278
+[VoiceCloningService] Generating segment 18: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 4.092375040054321
+ > Real-time factor: 1.3100590829442187
+[VoiceCloningService] Generating segment 19: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 7.517530679702759
+ > Real-time factor: 1.3404188081207613
+[VoiceCloningService] Generating segment 20: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 12.168118953704834
+ > Real-time factor: 1.3843960152789956
+[VoiceCloningService] Generating segment 21: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 5.807780742645264
+ > Real-time factor: 1.3702872514908413
+[VoiceCloningService] Generating segment 22: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 4.58780312538147
+ > Real-time factor: 1.376565683032079
+[VoiceCloningService] Generating segment 23: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 8.67337703704834
+ > Real-time factor: 1.38585480918055
+[VoiceCloningService] Generating segment 24: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 9.627331018447876
+ > Real-time factor: 1.372753808566837
+[VoiceCloningService] Generating segment 25: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 4.888203859329224
+ > Real-time factor: 1.3279235055466365
+[VoiceCloningService] Generating segment 26: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 1.9717199802398682
+ > Real-time factor: 1.3471872076192704
+[VoiceCloningService] Generating segment 27: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 3.3335750102996826
+ > Real-time factor: 1.3227996144743017
+[VoiceCloningService] Generating segment 28: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 3.1468920707702637
+ > Real-time factor: 1.3282727825513843
+[VoiceCloningService] Generating segment 29: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 2.6908438205718994
+ > Real-time factor: 1.339226847318761
+[VoiceCloningService] Generating segment 30: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 7.060552358627319
+ > Real-time factor: 1.3452680380524369
+[VoiceCloningService] Generating segment 31: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 2.308582067489624
+ > Real-time factor: 1.3521099284994211
+[VoiceCloningService] Generating segment 32: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 11.219789981842041
+ > Real-time factor: 1.338377310544972
+[VoiceCloningService] Generating segment 33: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 2.13956880569458
+ > Real-time factor: 1.374635552609717
+[VoiceCloningService] Generating segment 34: ',...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+[',']
+ > Processing time: 8.85319209098816
+ > Real-time factor: 1.3688775216417657
+[AudioMixerEngine] Mixing Cloned Translated and Original Kannada audio (BG: -25.0 LUFS, FG: 0.0 dB)...
+[AudioMixerEngine] Overlaying 35 translated segments...
+[AudioMixerEngine] Lip-Sync adjusting segment 0: ratio 4.57x (Current: 6401ms, Target: 1400ms)
+[AudioMixerEngine] Success: Stretched audio to 1579ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 0 at 30180ms (Duration: 1579ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 1: ratio 1.22x (Current: 1707ms, Target: 1400ms)
+[AudioMixerEngine] Success: Stretched audio to 1387ms using [atempo=1.2193]
+[AudioMixerEngine] Mixing segment 1 at 47240ms (Duration: 1387ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 2: ratio 2.48x (Current: 3478ms, Target: 1400ms)
+[AudioMixerEngine] Success: Stretched audio to 1377ms using [atempo=2.0,atempo=1.2421]
+[AudioMixerEngine] Mixing segment 2 at 53080ms (Duration: 1377ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 3: ratio 2.57x (Current: 5238ms, Target: 2040ms)
+[AudioMixerEngine] Success: Stretched audio to 2024ms using [atempo=2.0,atempo=1.2838]
+[AudioMixerEngine] Mixing segment 3 at 54480ms (Duration: 2024ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 4: ratio 194.95x (Current: 7798ms, Target: 40ms)
+[AudioMixerEngine] Success: Stretched audio to 1931ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 4 at 56520ms (Duration: 1931ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 5: ratio 8.55x (Current: 5473ms, Target: 640ms)
+[AudioMixerEngine] Success: Stretched audio to 1355ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 5 at 56560ms (Duration: 1355ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 6: ratio 3.94x (Current: 7243ms, Target: 1840ms)
+[AudioMixerEngine] Success: Stretched audio to 1819ms using [atempo=2.0,atempo=1.9682]
+[AudioMixerEngine] Mixing segment 6 at 57200ms (Duration: 1819ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 7: ratio 124.03x (Current: 4961ms, Target: 40ms)
+[AudioMixerEngine] Success: Stretched audio to 1227ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 7 at 59040ms (Duration: 1227ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 8: ratio 29.35x (Current: 1761ms, Target: 60ms)
+[AudioMixerEngine] Success: Stretched audio to 417ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 8 at 59080ms (Duration: 417ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 9: ratio 12.18x (Current: 2923ms, Target: 240ms)
+[AudioMixerEngine] Success: Stretched audio to 705ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 9 at 59640ms (Duration: 705ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 10: ratio 40.27x (Current: 6443ms, Target: 160ms)
+[AudioMixerEngine] Success: Stretched audio to 1579ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 10 at 59880ms (Duration: 1579ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 11: ratio 3.71x (Current: 1707ms, Target: 460ms)
+[AudioMixerEngine] Success: Stretched audio to 446ms using [atempo=2.0,atempo=1.8554]
+[AudioMixerEngine] Mixing segment 11 at 60040ms (Duration: 446ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 12: ratio 131.75x (Current: 2635ms, Target: 20ms)
+[AudioMixerEngine] Success: Stretched audio to 651ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 12 at 60500ms (Duration: 651ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 13: ratio 23.07x (Current: 1846ms, Target: 80ms)
+[AudioMixerEngine] Success: Stretched audio to 438ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 13 at 60520ms (Duration: 438ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 14: ratio 7.34x (Current: 1761ms, Target: 240ms)
+[AudioMixerEngine] Success: Stretched audio to 417ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 14 at 60960ms (Duration: 417ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 15: ratio 117.90x (Current: 2358ms, Target: 20ms)
+2026-03-12 09:29:03.077 Examining the path of torch.classes raised: Tried to instantiate class '__path__._path', but it does not exist! Ensure that it is registered via torch::class_
+2026-03-12 09:32:50.554 Examining the path of torch.classes raised: Tried to instantiate class '__path__._path', but it does not exist! Ensure that it is registered via torch::class_
+[AudioMixerEngine] Success: Stretched audio to 566ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 15 at 61200ms (Duration: 566ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 16: ratio 236.30x (Current: 4726ms, Target: 20ms)
+[AudioMixerEngine] Success: Stretched audio to 1163ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 16 at 61220ms (Duration: 1163ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 17: ratio 9.46x (Current: 2081ms, Target: 220ms)
+[AudioMixerEngine] Success: Stretched audio to 502ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 17 at 61240ms (Duration: 502ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 18: ratio 7.17x (Current: 2870ms, Target: 400ms)
+[AudioMixerEngine] Success: Stretched audio to 694ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 18 at 61460ms (Duration: 694ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 19: ratio 85.88x (Current: 5153ms, Target: 60ms)
+[AudioMixerEngine] Success: Stretched audio to 1270ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 19 at 61860ms (Duration: 1270ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 20: ratio 403.75x (Current: 8075ms, Target: 20ms)
+[AudioMixerEngine] Success: Stretched audio to 1995ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 20 at 61920ms (Duration: 1995ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 21: ratio 12.98x (Current: 3894ms, Target: 300ms)
+[AudioMixerEngine] Success: Stretched audio to 950ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 21 at 61940ms (Duration: 950ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 22: ratio 153.10x (Current: 3062ms, Target: 20ms)
+[AudioMixerEngine] Success: Stretched audio to 758ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 22 at 62240ms (Duration: 758ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 23: ratio 143.75x (Current: 5750ms, Target: 40ms)
+[AudioMixerEngine] Success: Stretched audio to 1419ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 23 at 62260ms (Duration: 1419ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 24: ratio 16.96x (Current: 6443ms, Target: 380ms)
+[AudioMixerEngine] Success: Stretched audio to 1579ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 24 at 62300ms (Duration: 1579ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 25: ratio 12.08x (Current: 3382ms, Target: 280ms)
+[AudioMixerEngine] Success: Stretched audio to 822ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 25 at 62680ms (Duration: 822ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 26: ratio 33.62x (Current: 1345ms, Target: 40ms)
+[AudioMixerEngine] Success: Stretched audio to 321ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 26 at 62960ms (Duration: 321ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 27: ratio 10.52x (Current: 2315ms, Target: 220ms)
+[AudioMixerEngine] Success: Stretched audio to 566ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 27 at 63000ms (Duration: 566ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 28: ratio 108.85x (Current: 2177ms, Target: 20ms)
+[AudioMixerEngine] Success: Stretched audio to 513ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 28 at 63220ms (Duration: 513ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 29: ratio 92.30x (Current: 1846ms, Target: 20ms)
+[AudioMixerEngine] Success: Stretched audio to 438ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 29 at 63240ms (Duration: 438ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 30: ratio 48.22x (Current: 4822ms, Target: 100ms)
+[AudioMixerEngine] Success: Stretched audio to 1174ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 30 at 63260ms (Duration: 1174ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 31: ratio 26.15x (Current: 1569ms, Target: 60ms)
+[AudioMixerEngine] Success: Stretched audio to 374ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 31 at 63360ms (Duration: 374ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 32: ratio 385.10x (Current: 7702ms, Target: 20ms)
+[AudioMixerEngine] Success: Stretched audio to 1899ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 32 at 63420ms (Duration: 1899ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 33: ratio 17.88x (Current: 1430ms, Target: 80ms)
+[AudioMixerEngine] Success: Stretched audio to 342ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 33 at 63440ms (Duration: 342ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 34: ratio 49.93x (Current: 5942ms, Target: 119ms)
+[AudioMixerEngine] Success: Stretched audio to 1462ms using [atempo=2.0,atempo=2.0000]
+[AudioMixerEngine] Mixing segment 34 at 63900ms (Duration: 1462ms)
+[SubtitleEngine] Generating .vtt subtitles for hi...
+[VideoService] Fast-muxing audio (hi_mixed) into video...
+[VideoService] Fast-muxing audio (hi_fg) into video...
+--- Rendering Master Multi-Track Video ---
+[VideoService] Rendering master multitrack MKV video...
+[VideoService] Successfully rendered master video at workspace/master_multitrack_output.mkv
+Stage 9: Quality Control
+[QualityControlEngine] Running automated QC checks...
+[QualityControlEngine] QC complete. Status: PASS
+--- Pipeline Complete ---
+[SpeechService] Loading Faster-Whisper 'small' model...
+[SpeechService] Initializing Pyannote Speaker Diarization...
+[SpeechService] Failed to initialize Pyannote (Invalid Token?): module 'torchaudio' has no attribute 'set_audio_backend'
+[VoiceCloningService] Loading XTTSv2 Voice Cloning model... This may take a while
+ > tts_models/multilingual/multi-dataset/xtts_v2 is already downloaded.
+ > Using model: xtts
+--- Starting Pipeline for workspace/BDA Kannada.mp4 (Multi-track Output) ---
+Stage 1: Video Ingest & Audio Extraction
+[VideoService] Ingested video: 816x464 @ 24.0fps, 67.79s
+[VideoService] Audio extracted to workspace/extracted_audio.wav
+Stage 2: Kannada Speech Recognition & Diarization
+[SpeechService] Transcribing workspace/extracted_audio.wav in kn with timestamps...
+[SpeechService] Segment: 60.00s - 62.74s [SPEAKER_01] | Text: if you like it, please watch i...
+[SpeechService] Segment: 62.74s - 63.74s [SPEAKER_01] | Text: Thank you very much....
+--- Processing Target: en ---
+[TranslationEngine] Translating 2 segments to en using Sarvam AI...
+[TranslationEngine] Segment 60.00s: 'if you like it, please watch i...' -> 'If you like it, please watch i...'
+[TranslationEngine] Segment 62.74s: 'Thank you very much....' -> 'Thank you very much....'
+[VoiceCloningService] Generating en speech for 2 segments...
+[VoiceCloningService] Generating segment 0: 'If you like it, please watch i...' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+['If you like it, please watch it and solve our problem.']
+ > Processing time: 6.204304218292236
+ > Real-time factor: 1.4800600226473928
+[VoiceCloningService] Generating segment 1: 'Thank you very much....' using sample workspace/sample_0.0_10.0.wav
+ > Text splitted to sentences.
+['Thank you very much.']
+ > Processing time: 2.955162763595581
+ > Real-time factor: 1.3607028678851187
+[AudioMixerEngine] Mixing Cloned Translated and Original Kannada audio (BG: -25.0 LUFS, FG: 0.0 dB)...
+[AudioMixerEngine] Overlaying 2 translated segments...
+[AudioMixerEngine] Lip-Sync adjusting segment 0: ratio 1.41x (Current: 3851ms, Target: 2740ms)
+[AudioMixerEngine] Success: Stretched audio to 2723ms using [atempo=1.4055]
+[AudioMixerEngine] Mixing segment 0 at 60000ms (Duration: 2723ms)
+[AudioMixerEngine] Lip-Sync adjusting segment 1: ratio 2.00x (Current: 1995ms, Target: 1000ms)
+[AudioMixerEngine] Success: Stretched audio to 998ms using [atempo=1.9950]
+[AudioMixerEngine] Mixing segment 1 at 62740ms (Duration: 998ms)
+[SubtitleEngine] Generating .vtt subtitles for en...
+[VideoService] Fast-muxing audio (en_mixed) into video...
+[VideoService] Fast-muxing audio (en_fg) into video...
+--- Processing Target: hi ---
+[TranslationEngine] Translating 2 segments to hi using Sarvam AI...
+2026-03-12 09:39:32.117 Examining the path of torch.classes raised: Tried to instantiate class '__path__._path', but it does not exist! Ensure that it is registered via torch::class_
