@@ -69,11 +69,19 @@ class SpeechService:
             print(f"[SpeechService] Language detection failed: {e}. Defaulting to 'kn'.")
             return "kn"
 
-    def _get_speaker_at_time(self, diarization, midpoint: float) -> str:
-        """Find which speaker is active at midpoint seconds."""
+    def _get_speaker_overlap(self, diarization, start: float, end: float) -> str:
+        """Find the speaker with the maximum overlap duration for the given whisper segment."""
+        speaker_overlaps = {}
         for turn, _, speaker in diarization.itertracks(yield_label=True):
-            if turn.start <= midpoint <= turn.end:
-                return speaker
+            overlap_start = max(start, turn.start)
+            overlap_end = min(end, turn.end)
+            if overlap_end > overlap_start:
+                duration = overlap_end - overlap_start
+                speaker_overlaps[speaker] = speaker_overlaps.get(speaker, 0) + duration
+
+        if speaker_overlaps:
+            return max(speaker_overlaps.items(), key=lambda x: x[1])[0]
+
         return "SPEAKER_01"
 
     def transcribe_and_diarize(self, audio_path: str, language: str = None) -> tuple:
@@ -138,8 +146,7 @@ class SpeechService:
         transcript = []
         for segment in whisper_segments:
             if diarization_result is not None:
-                midpoint = (segment.start + segment.end) / 2.0
-                speaker_label = self._get_speaker_at_time(diarization_result, midpoint)
+                speaker_label = self._get_speaker_overlap(diarization_result, segment.start, segment.end)
             else:
                 speaker_label = "SPEAKER_01"
 

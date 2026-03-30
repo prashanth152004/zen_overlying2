@@ -87,9 +87,23 @@ def _detect_gender_from_audio(audio_path: str, start: float, end: float) -> str:
     """
     try:
         import librosa
+        import io
+        from pydub import AudioSegment
 
         duration = min(end - start, 20.0)
-        y, sr = librosa.load(audio_path, sr=22050, offset=start, duration=duration, mono=True)
+        
+        # PRE-PROCESS: Isolate human vocal fundamental frequencies (60Hz - 400Hz)
+        # This absolutely annihilates background music/noise from messing up the F0 pitch tracking!
+        audio = AudioSegment.from_file(audio_path)
+        clip = audio[start * 1000 : (start + duration) * 1000].set_channels(1)
+        clip = clip.high_pass_filter(60).low_pass_filter(400)
+        
+        buf = io.BytesIO()
+        clip.export(buf, format="wav")
+        buf.seek(0)
+        
+        # Load the filtered, purified audio into librosa's pitch tracker
+        y, sr = librosa.load(buf, sr=22050)
 
         if len(y) < sr * 0.3:
             print(f"[GenderDetect] {start:.1f}s–{end:.1f}s | Clip too short → defaulting to 'male'")
