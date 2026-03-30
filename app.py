@@ -148,6 +148,22 @@ with st.sidebar:
             )
         internal_model_key = "sarvam_ai" if translation_model_choice == "Sarvam AI (High Accuracy/Paid)" else "deep_translator"
 
+    with st.expander("🎙️ AI Speech Recognition", expanded=True):
+        st.write("Select Whisper transcription model:")
+        whisper_choice = st.selectbox(
+            "Whisper Model",
+            options=[
+                "tiny (Fastest / Lowest Accuracy)",
+                "base (Fast / Basic Accuracy)",
+                "small (Recommended / Good Accuracy)",
+                "medium (Slow / High Accuracy)",
+                "large-v3 (Very Slow / Max Accuracy)"
+            ],
+            index=2,
+            label_visibility="collapsed"
+        )
+        whisper_model_size = whisper_choice.split(" ")[0]
+
     with st.expander("🌐 Input Language", expanded=True):
         st.write("Select the language spoken in the uploaded video.")
         lang_choice = st.selectbox(
@@ -283,6 +299,7 @@ with col2:
                     translation_model=internal_model_key,
                     sarvam_api_key=sarvam_api_key,
                     tts_speed=1.0,  # Auto-adjusted per segment in voice_service
+                    whisper_model_size=whisper_model_size,
                     hf_token=hf_token if hf_token else None,
                     source_lang=source_lang,  # None = auto-detect
                 )

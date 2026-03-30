@@ -28,6 +28,7 @@ class TranslationPipeline:
         translation_model="deep_translator",
         sarvam_api_key=None,
         tts_speed=1.0,
+        whisper_model_size="small",
         hf_token=None,
         source_lang=None,            # None = auto-detect
     ):
@@ -38,6 +39,7 @@ class TranslationPipeline:
         self.translation_model = translation_model
         self.sarvam_api_key = sarvam_api_key
         self.tts_speed = tts_speed
+        self.whisper_model_size = whisper_model_size
         self.hf_token = hf_token
         self.source_lang = source_lang   # None means auto-detect later
 
@@ -59,7 +61,7 @@ class TranslationPipeline:
         print("Stage 2: Transcription & Language Detection")
         
         # Load Whisper into memory
-        speech_service = SpeechService(hf_token=self.hf_token)
+        speech_service = SpeechService(model_size=self.whisper_model_size, hf_token=self.hf_token)
         english_transcript, detected_lang = speech_service.transcribe_and_diarize(
             audio_path, language=self.source_lang
         )
