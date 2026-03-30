@@ -364,21 +364,22 @@ class VoiceCloningService:
             # the text into phonetic Devanagari (Hindi) which XTTS proudly supports!
             xtts_text = text
             xtts_language = language
+            segment_use_xtts = use_xtts
             
-            if language == 'kn' and not use_xtts:
+            if language == 'kn':
                 try:
                     from indic_transliteration import sanscript
                     # Transform Kannada Unicode -> Devanagari Unicode
                     xtts_text = sanscript.transliterate(text, sanscript.KANNADA, sanscript.DEVANAGARI)
                     xtts_language = 'hi'  # Trick the model into reading it phonetically
-                    use_xtts = True
+                    segment_use_xtts = True
                     print(f"[VoiceCloningService] Transliterated KN→HI for XTTS: '{xtts_text[:20]}…'")
                 except ImportError:
                     print("[VoiceCloningService] indic-transliteration missing! Falling back to Edge-TTS.")
-                    use_xtts = False
+                    segment_use_xtts = False
 
             # ── XTTS path: voice cloning with dynamic emotion & phonetic mapping ──
-            if use_xtts:
+            if segment_use_xtts:
                 if not reference_sample or not os.path.exists(reference_sample):
                     print(f"[VoiceCloningService] No sample for {sid} — falling back to Edge-TTS")
                     if not self._generate_with_edge_tts(text, language, segment_gender, out_path, speed=segment_speed):
