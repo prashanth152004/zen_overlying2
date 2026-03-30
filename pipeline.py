@@ -50,8 +50,31 @@ class TranslationPipeline:
         self.subtitle_engine = SubtitleEngine(self.work_dir)
         self.qc_engine = QualityControlEngine()
 
+    def _cleanup_workspace(self, protected_file: str):
+        """Purge temporary acoustic and video files from previous runs to prevent ENOSPC crashes."""
+        print("[Pipeline] Purging obsolete workspace artifacts to reclaim Docker virtual disk space...")
+        try:
+            import shutil
+            protected_path = Path(protected_file).resolve()
+            # Destroy old floating files except the freshly uploaded video
+            for ext in ["*.wav", "*.mp3", "*.mp4", "*.mkv", "*.srt", "*.vtt"]:
+                for f in self.work_dir.glob(ext):
+                    if f.resolve() != protected_path:
+                        f.unlink(missing_ok=True)
+            
+            # Wipe and reconstruct the cloned audio directory securely
+            cloned_dir = self.work_dir / "cloned_audio"
+            if cloned_dir.exists():
+                shutil.rmtree(cloned_dir, ignore_errors=True)
+            cloned_dir.mkdir(exist_ok=True)
+        except Exception as e:
+            print(f"[Pipeline] Automated disk cleanup encountered an error: {e}")
+
     def run(self, input_video_path: str):
         print(f"--- Starting Multi-Language Pipeline for: {input_video_path} ---")
+
+        # ── Stage 0: Security & Junk Cleanup ──────────────────────────────
+        self._cleanup_workspace(protected_file=input_video_path)
 
         # ── Stage 1: Ingest ───────────────────────────────────────────────
         print("Stage 1: Video Ingest & Audio Extraction")
