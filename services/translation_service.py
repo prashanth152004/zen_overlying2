@@ -1,8 +1,9 @@
 import time
 import requests
 
-# Delimiter used to batch multiple segments in one translation call
-_BATCH_DELIMITER = " ||| "
+# Delimiter used to batch multiple segments in one translation call.
+# Google Translate preserves paragraph breaks perfectly, allowing context transfer.
+_BATCH_DELIMITER = "\n\n"
 # Number of consecutive segments to batch for context continuity
 _BATCH_SIZE = 5
 
@@ -138,7 +139,9 @@ class TranslationEngine:
             time.sleep(0.15)
             if not translated_joined:
                 raise ValueError("Empty response")
-            parts = [p.strip() for p in translated_joined.split("|||")]
+            # Google Translate occasionally reduces \n\n to \n, so we split flexibly and clean empty lines
+            parts = [p.strip() for p in translated_joined.split('\n') if p.strip()]
+            
             if len(parts) == len(texts):
                 return parts
             print(f"[TranslationEngine] Batch split mismatch ({len(parts)} vs {len(texts)}). Falling back.")
@@ -152,7 +155,7 @@ class TranslationEngine:
     # ─────────────────────────────────────────────────────────────
 
     def _clean_translated_text(self, text: str) -> str:
-        return text.replace("|||", "").replace("  ", " ").strip()
+        return text.replace("\n", " ").replace("  ", " ").strip()
 
     # ─────────────────────────────────────────────────────────────
     # PUBLIC API

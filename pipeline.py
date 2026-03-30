@@ -42,9 +42,8 @@ class TranslationPipeline:
         self.source_lang = source_lang   # None means auto-detect later
 
         self.video_service = VideoService(self.work_dir)
-        self.speech_service = SpeechService(hf_token=self.hf_token)
-        self.translation_service = TranslationEngine(model=self.translation_model, api_key=self.sarvam_api_key)
-        self.voice_service = VoiceCloningService(self.work_dir)
+        # We will initialize memory-heavy services selectively during the run() method
+        # to prevent Docker Out-Of-Memory issues on 8GB machines.
         self.audio_mixer = AudioMixerEngine(self.work_dir)
         self.subtitle_engine = SubtitleEngine(self.work_dir)
         self.qc_engine = QualityControlEngine()
@@ -58,10 +57,25 @@ class TranslationPipeline:
 
         # ── Stage 2: Transcription + Language Detection ───────────────────
         print("Stage 2: Transcription & Language Detection")
-        english_transcript, detected_lang = self.speech_service.transcribe_and_diarize(
+        
+        # Load Whisper into memory
+        speech_service = SpeechService(hf_token=self.hf_token)
+        english_transcript, detected_lang = speech_service.transcribe_and_diarize(
             audio_path, language=self.source_lang
         )
         lang_name = LANG_NAMES.get(detected_lang, detected_lang.upper())
+        
+        # Free Whisper from memory entirely before loading the massive XTTS model
+        del speech_service
+        import gc
+        gc.collect()
+        import torch
+        if torch.cuda.is_available(): torch.cuda.empty_cache()
+        if torch.backends.mps.is_available(): torch.mps.empty_cache()
+        
+        # Now load Translation and Voice Cloning into memory
+        translation_service = TranslationEngine(model=self.translation_model, api_key=self.sarvam_api_key)
+        voice_service = VoiceCloningService(self.work_dir)
         print(f"[Pipeline] Source language: {detected_lang} ({lang_name})")
 
         # ── Determine target languages (everything except the source) ──────
@@ -100,7 +114,7 @@ class TranslationPipeline:
             # Translate English transcript → target
             # (For English source the english_transcript IS the transcript;
             #  for kn/hi Whisper already output English via task=translate)
-            transcript = self.translation_service.translate_transcript(
+            transcript = translation_service.translate_transcript(
                 english_transcript, source="en", target=target_lang
             )
 
@@ -108,7 +122,7 @@ class TranslationPipeline:
             tts_lang = TTS_LANG_CODE.get(target_lang, "en")
 
             # Generate voice-cloned speech
-            cloned_audio_segments = self.voice_service.generate_speech(
+            cloned_audio_segments = voice_service.generate_speech(
                 transcript,
                 reference_audio=audio_path,
                 language=tts_lang,

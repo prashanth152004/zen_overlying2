@@ -14,7 +14,13 @@ services:
       - .:/app
       # Persist the workspace output (translated videos, audio) across restarts
       - ./workspace:/app/workspace
+      # Writable cache for HuggingFace model downloads (whisper, pyannote, etc.)
+      # Uses a host bind-mount so Docker's internal volume store is not needed.
+      - ./.cache/huggingface:/root/.cache/huggingface
+      # Writable cache for TTS (Coqui) models
+      - ./.cache/tts:/root/.local/share/tts
     environment:
       - PYTHONUNBUFFERED=1
       - STREAMLIT_SERVER_HEADLESS=true
+      - COQUI_TOS_AGREED=1
     restart: unless-stopped

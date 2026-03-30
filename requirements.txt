@@ -1,7 +1,10 @@
 # AI Media Translation & Publishing Agent dependencies
 
 # Core Inference / AI Models
+torch==2.6.0
+torchaudio==2.6.0
 faster-whisper==1.0.3        # Stage 2: Fast local ASR
+indic-transliteration==2.3.61
 pyannote.audio>=3.3.1        # Stage 2: Speaker Diarization
 TTS==0.22.0                  # Stage 4: Coqui XTTSv2 Voice Cloning
 deep-translator==1.11.4      # Stage 3: Free Translation (Google Translate fallback)
