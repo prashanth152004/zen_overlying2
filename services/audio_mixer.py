@@ -167,10 +167,11 @@ class AudioMixerEngine:
         else:
             data_sec = data_sec * 0.01 
             
-        sec_path_temp = str(self.work_dir / "temp_sec.wav")
-        sf.write(sec_path_temp, data_sec, sr_sec)
-        
-        background = AudioSegment.from_file(sec_path_temp)
+        import io
+        buf = io.BytesIO()
+        sf.write(buf, data_sec, sr_sec, format='WAV')
+        buf.seek(0)
+        background = AudioSegment.from_file(buf, format="wav")
         
         # Create a blank canvas for primary (Foreground voices) with 44.1kHz proper frame rate
         foreground = AudioSegment.silent(duration=int(video_duration * 1000 + 2000), frame_rate=44100)
