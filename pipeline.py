@@ -28,9 +28,9 @@ class TranslationPipeline:
         translation_model="deep_translator",
         sarvam_api_key=None,
         tts_speed=1.0,
-        whisper_model_size="small",
         hf_token=None,
         source_lang=None,            # None = auto-detect
+        whisper_model_size="small"
     ):
         self.work_dir = Path(work_dir)
         self.work_dir.mkdir(exist_ok=True)
@@ -39,9 +39,9 @@ class TranslationPipeline:
         self.translation_model = translation_model
         self.sarvam_api_key = sarvam_api_key
         self.tts_speed = tts_speed
-        self.whisper_model_size = whisper_model_size
         self.hf_token = hf_token
         self.source_lang = source_lang   # None means auto-detect later
+        self.whisper_model_size = whisper_model_size
 
         self.video_service = VideoService(self.work_dir)
         # We will initialize memory-heavy services selectively during the run() method
@@ -87,6 +87,7 @@ class TranslationPipeline:
         # ── Build results structure ────────────────────────────────────────
         original_track_name = f"Original {lang_name}"
         results = {
+            "transcript": english_transcript,
             "detected_lang": detected_lang,
             "lang_name": lang_name,
             "qc_report": {},

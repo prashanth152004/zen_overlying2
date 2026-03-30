@@ -148,22 +148,6 @@ with st.sidebar:
             )
         internal_model_key = "sarvam_ai" if translation_model_choice == "Sarvam AI (High Accuracy/Paid)" else "deep_translator"
 
-    with st.expander("🎙️ AI Speech Recognition", expanded=True):
-        st.write("Select Whisper transcription model:")
-        whisper_choice = st.selectbox(
-            "Whisper Model",
-            options=[
-                "tiny (Fastest / Lowest Accuracy)",
-                "base (Fast / Basic Accuracy)",
-                "small (Recommended / Good Accuracy)",
-                "medium (Slow / High Accuracy)",
-                "large-v3 (Very Slow / Max Accuracy)"
-            ],
-            index=2,
-            label_visibility="collapsed"
-        )
-        whisper_model_size = whisper_choice.split(" ")[0]
-
     with st.expander("🌐 Input Language", expanded=True):
         st.write("Select the language spoken in the uploaded video.")
         lang_choice = st.selectbox(
@@ -185,6 +169,22 @@ with st.sidebar:
         else:
             _TARGETS = {"kn": "English & Hindi", "en": "Hindi & Kannada", "hi": "English & Kannada"}
             st.success(f"✅ Will translate to **{_TARGETS[source_lang]}**.")
+
+    with st.expander("🎙️ Speech Recognition (Whisper)", expanded=False):
+        st.write("Select the underlying transcription model:")
+        whisper_model_choice = st.selectbox(
+            "Whisper Model",
+            options=[
+                "tiny (Fastest, lowest accuracy)",
+                "base (Fast, decent accuracy)",
+                "small (Balanced speed and accuracy - Recommended)",
+                "medium (High accuracy, requires more RAM)",
+                "large-v3 (Best accuracy, very slow on CPU)"
+            ],
+            index=2,
+            label_visibility="collapsed"
+        )
+        whisper_model_size = whisper_model_choice.split(" ")[0]
 
     with st.expander("🤗 Speaker Diarization (Pyannote)", expanded=False):
         st.write("Enable real multi-speaker detection via Hugging Face Pyannote.")
@@ -299,9 +299,9 @@ with col2:
                     translation_model=internal_model_key,
                     sarvam_api_key=sarvam_api_key,
                     tts_speed=1.0,  # Auto-adjusted per segment in voice_service
-                    whisper_model_size=whisper_model_size,
                     hf_token=hf_token if hf_token else None,
                     source_lang=source_lang,  # None = auto-detect
+                    whisper_model_size=whisper_model_size,
                 )
                 
                 status_container.info("🔄 Processing National Assets (Multi-Language Generation)...")
@@ -315,6 +315,11 @@ with col2:
                 status_container.success(
                     f"✅ Detected: **{detected_name}** → Translated to: **{', '.join(target_names)}**"
                 )
+
+                # Warn user if diarization failed/skipped and everything defaulted to 1 speaker
+                num_speakers = len(set(seg.get('speaker_id') for seg in results.get("transcript", [])))
+                if num_speakers <= 1:
+                    st.warning("⚠️ **Voice Profile Alert:** Only **1 speaker** was detected in this entire video! If multiple people are talking, they will all share the exact same voice. This usually happens if you leave the **Hugging Face Token** blank in the sidebar.")
 
                 # Store results in session_state so UI interactions don't reload the pipeline
                 st.session_state["pipeline_results"] = results

@@ -134,8 +134,8 @@ def _detect_gender_from_audio(audio_path: str, start: float, end: float) -> str:
         # ── Gender classification ─────────────────────────────────────────────
         # Female range: 160–300 Hz (lower bound 160 to catch contralto speakers)
         # Male   range:  65–180 Hz
-        # Overlap 160–180 Hz → classify as female (less jarring to listeners)
-        if representative_f0 >= 160.0:
+        # Raising overlap threshold to 185Hz to prevent misclassifying higher-pitched males
+        if representative_f0 >= 185.0:
             gender = 'female'
         else:
             gender = 'male'
@@ -160,13 +160,22 @@ class VoiceCloningService:
         print("[VoiceCloningService] Loading XTTSv2 Voice Cloning model... This may take a while")
         self.tts = TTS(model_name="tts_models/multilingual/multi-dataset/xtts_v2").to(self.device)
 
-    def extract_speaker_sample(self, reference_audio: str, start: float, end: float, tag: str = "") -> str:
+    def extract_speaker_sample(self, reference_audio: str, start: float, end: float, tag: str = "", pitch_shift: float = 0.0) -> str:
         """Extract a clean audio sample of the speaker for cloning."""
         audio = AudioSegment.from_file(reference_audio)
         sample = audio[start * 1000: end * 1000]
         sample = sample.normalize()
         sample = sample.high_pass_filter(50)    # Allows deep bass frequencies (was 100Hz)
         sample = sample.low_pass_filter(15000)  # Allows high clarity/air (was 8000Hz)
+        
+        # Deep Pitch Shift for Male XTTS Hallucination Override
+        if pitch_shift != 0.0:
+            # Shift pitch mathematically (Pydub trick: drops pitch by stretching time)
+            # Safe because XTTS only uses this file to extract a static voice tone vector!
+            new_sample_rate = int(sample.frame_rate * (2.0 ** (pitch_shift / 12.0)))
+            shifted = sample._spawn(sample.raw_data, overrides={'frame_rate': new_sample_rate})
+            sample = shifted.set_frame_rate(sample.frame_rate)
+            
         filename = f"sample_{tag}_{start:.1f}_{end:.1f}.wav" if tag else f"sample_{start:.1f}_{end:.1f}.wav"
         sample_path = str(self.work_dir / filename)
         sample.export(sample_path, format="wav")
@@ -204,13 +213,16 @@ class VoiceCloningService:
             # Determine gender once for this speaker using their best segment
             gender = _detect_gender_from_audio(reference_audio, best_seg['start'], best_seg['end'])
 
+            # Aggressive pitch drop if male to combat XTTS Hindi female-bias
+            shift = -3.5 if gender == 'male' else 0.0
+
             # Extract a clean reference sample (cap at 12s for XTTS quality)
             sample = None
             if dur >= 2.0:
                 try:
                     sample_end = min(best_seg['start'] + 12.0, best_seg['end'])
                     sample = self.extract_speaker_sample(
-                        reference_audio, best_seg['start'], sample_end, tag=sid
+                        reference_audio, best_seg['start'], sample_end, tag=sid, pitch_shift=shift
                     )
                 except Exception as e:
                     print(f"[VoiceCloningService] Could not extract sample for {sid}: {e}")
@@ -218,7 +230,7 @@ class VoiceCloningService:
             # If no good segment found, use first 10s as fallback
             if sample is None:
                 try:
-                    sample = self.extract_speaker_sample(reference_audio, 0.0, 10.0, tag=f"{sid}_fallback")
+                    sample = self.extract_speaker_sample(reference_audio, 0.0, 10.0, tag=f"{sid}_fallback", pitch_shift=shift)
                 except Exception as e:
                     print(f"[VoiceCloningService] Fallback sample failed for {sid}: {e}")
 
@@ -396,7 +408,8 @@ class VoiceCloningService:
                                 reference_audio,
                                 segment["start"],
                                 segment["end"],
-                                tag=f"seg_{i}_emotion"
+                                tag=f"seg_{i}_emotion",
+                                pitch_shift=-3.5 if segment_gender == 'male' else 0.0
                             )
                             # XTTS accepts a list: [Emotional Prosody Sample, Primary Identity Sample]
                             current_emotion_sample = [dynamic_sample, reference_sample]
