@@ -31,11 +31,17 @@ class TranslationEngine:
 
     def _protect_literals(self, text: str) -> tuple:
         """
-        Shields numbers, URLs, and website domains from being rewritten by the AI.
-        Replaces them with indestructible placeholders: __LIT0__, __LIT1__...
+        Shields ALL literals from being rewritten by the AI translator:
+        - Numbers (18, 4.5, 100%)
+        - URLs (https://passportseva.gov.in)
+        - Website domains (passportseva.com, parivansewa.com)
+        - Phone numbers (+91-9999999999, 9876543210)
+        - Hashtags (#Shorts, #MyVideo)
+        - @handles (@username)
         Returns (protected_text, protected_dict)
         """
         import re
+        import unicodedata
         protected = {}
         counter = [0]
 
@@ -44,28 +50,40 @@ class TranslationEngine:
             counter[0] += 1
             return key
 
-        result = text
-
-        # 1. Protect full URLs — e.g. https://passportseva.gov.in
-        def protect_url(m):
+        def protect(m):
             key = make_key()
             protected[key] = m.group(0)
             return key
-        result = re.sub(r'https?://\S+', protect_url, result)
 
-        # 2. Protect website domains — e.g. passportseva.com, parivansewa.com
-        result = re.sub(r'\b[a-zA-Z0-9.-]+\.(?:com|in|gov|org|net|co|io)\b', protect_url, result)
+        # Normalize unicode (fixes garbled Indic chars from some transcribers)
+        result = unicodedata.normalize('NFC', text)
 
-        # 3. Protect standalone numbers, decimals, percentages — e.g. 18, 4, 100%
-        result = re.sub(r'\b\d+(?:[.,]\d+)*\s*%?\b', protect_url, result)
+        # 1. Full URLs (must come first to avoid domain-only regex eating them)
+        result = re.sub(r'https?://\S+', protect, result)
+
+        # 2. Website domains — e.g. passportseva.com, parivansewa.gov.in
+        result = re.sub(r'\b[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?'
+                        r'\.(?:com|in|gov|org|net|co|io|edu|ac)\b', protect, result)
+
+        # 3. Phone numbers — e.g. +91-9876543210, 080-12345678
+        result = re.sub(r'\+?\d[\d\s\-().]{6,14}\d', protect, result)
+
+        # 4. Hashtags and @handles
+        result = re.sub(r'[#@][\w]+', protect, result)
+
+        # 5. Standalone numbers, decimals, percentages (after phone numbers)
+        result = re.sub(r'\b\d+(?:[.,]\d+)*\s*%?\b', protect, result)
 
         return result, protected
 
     def _restore_literals(self, text: str, protected: dict) -> str:
-        """Restores all protected literals back into the translated text exactly as they were."""
+        """Restores ALL protected literals back into translated text exactly as they were."""
         result = text
         for key, value in protected.items():
             result = result.replace(key, value)
+        # Safety net: clean up any leftover placeholder tokens that the AI garbled
+        import re
+        result = re.sub(r'__LIT\d+__', '', result).strip()
         return result
 
     # ─────────────────────────────────────────────────────────────
