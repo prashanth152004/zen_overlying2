@@ -210,7 +210,9 @@ def _cluster_genders_by_pitch_and_timbre(transcript: list, audio_path: str) -> d
                 y, fmin=65, fmax=400, sr=sr, frame_length=2048, hop_length=512
             )
             f0 = f0_frames[voiced_flag & (f0_frames > 60)]
-            median_f0 = float(np.median(f0)) if len(f0) > 5 else 185.0
+            # Fix: Defaulting to 185Hz was biasing the cluster toward female.
+            # We now use 0.0 as a marker to be filled later with the video's actual mean.
+            median_f0 = float(np.median(f0)) if len(f0) > 5 else 0.0
             
             # Extract Biological Timbre Shape (MFCC)
             mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
@@ -226,6 +228,15 @@ def _cluster_genders_by_pitch_and_timbre(transcript: list, audio_path: str) -> d
             return {i: 'male' for i in range(len(transcript))}
             
         data = np.array(features)
+        
+        # ── ACOUSTIC HOLE FILLING ──
+        # Any segments that failed pitch detection (0.0) are now filled with the 
+        # average pitch of the successful detections. This prevents 'dead' segments 
+        # from pulling the K-Means clusters into a fake male/female split.
+        pit_col = data[:, 13]
+        valid_pits = pit_col[pit_col > 0]
+        filler_pitch = np.mean(valid_pits) if len(valid_pits) > 0 else 135.0
+        data[pit_col == 0, 13] = filler_pitch
         
         # Whitening neutralizes the massive mathematical scale differences between 
         # a 180Hz Pitch unit and a 0.2 MFCC resonance unit!
@@ -251,16 +262,17 @@ def _cluster_genders_by_pitch_and_timbre(transcript: list, audio_path: str) -> d
             pitch_1 = cluster_pitches[1]
             pitch_gap = abs(pitch_0 - pitch_1)
             
-            # If the difference is less than 45Hz, it's mathematically the EXACT SAME PERSON!
+            # If the difference is less than 65Hz, it is mathematically likely the SAME PERSON!
             # K-Means accidentally chopped a Solo-Actor's voice into loud/quiet buckets.
-            if pitch_gap < 45.0:
-                print(f"[VoiceCloningService] Centroid gap {pitch_gap:.1f}Hz < 45Hz. Collapsing into ONE gender!")
+            if pitch_gap < 65.0:
+                print(f"[VoiceCloningService] Centroid gap {pitch_gap:.1f}Hz < 65Hz. Collapsing into ONE gender!")
                 global_avg_pitch = (pitch_0 + pitch_1) / 2.0
-                resolved_gender = 'female' if global_avg_pitch > 195.0 else 'male'
+                # Pivot lowered to 175Hz for more robust solo male/female detection
+                resolved_gender = 'female' if global_avg_pitch > 175.0 else 'male'
                 # Lock both randomly split clusters together into the same gender
                 cluster_gender_map = {0: resolved_gender, 1: resolved_gender}
             else:
-                print(f"[VoiceCloningService] Centroid gap {pitch_gap:.1f}Hz > 45Hz. Confirmed TWO distinct genders!")
+                print(f"[VoiceCloningService] Centroid gap {pitch_gap:.1f}Hz > 65Hz. Confirmed TWO distinct genders!")
                 male_id = np.argmin(cluster_pitches)
                 cluster_gender_map = {
                     male_id: 'male',
@@ -269,7 +281,7 @@ def _cluster_genders_by_pitch_and_timbre(transcript: list, audio_path: str) -> d
         else:
             # Only 1 cluster generated
             single_pitch = cluster_pitches[0]
-            resolved_gender = 'female' if single_pitch > 195.0 else 'male'
+            resolved_gender = 'female' if single_pitch > 175.0 else 'male'
             cluster_gender_map = {0: resolved_gender}
         
         mapped_genders = {}
