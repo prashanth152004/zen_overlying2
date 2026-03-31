@@ -194,7 +194,7 @@ class TranslationEngine:
 
     def _translate_with_deep_translator(self, text: str, target_lang: str) -> str:
         from deep_translator import GoogleTranslator
-        translator = GoogleTranslator(source="en", target=target_lang)
+        translator = GoogleTranslator(source="auto", target=target_lang)
         try:
             translated = translator.translate(text)
             time.sleep(0.1)
@@ -219,7 +219,7 @@ class TranslationEngine:
             payload_lines.append(f"{j+1}. {t}")
 
         joined_context = "\n".join(payload_lines)
-        translator = GoogleTranslator(source="en", target=target_lang)
+        translator = GoogleTranslator(source="auto", target=target_lang)
 
         try:
             translated_joined = translator.translate(joined_context)
