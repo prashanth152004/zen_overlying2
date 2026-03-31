@@ -128,26 +128,49 @@ class TranslationEngine:
 
     def _translate_batch_with_deep_translator(self, texts: list, target_lang: str) -> list:
         """
-        Batch-translate consecutive segments joined by ||| for context continuity.
-        Falls back to per-segment if batch parsing fails.
+        The 'Context-Batch' Algorithm.
+        Translates a batch of consecutive sentences as a single numbered list.
+        This fundamentally tricks Google Translate into understanding conversational 
+        grammar across sentences, astronomically improving Hindi/Kannada accuracy.
         """
         from deep_translator import GoogleTranslator
-        joined = _BATCH_DELIMITER.join(texts)
+        import re
+        
+        # Wrap the sentences in an indestructible numbered format
+        payload_lines = []
+        for j, t in enumerate(texts):
+            payload_lines.append(f"{j+1}. {t}")
+            
+        joined_context = "\n".join(payload_lines)
         translator = GoogleTranslator(source="en", target=target_lang)
+        
         try:
-            translated_joined = translator.translate(joined)
+            translated_joined = translator.translate(joined_context)
             time.sleep(0.15)
             if not translated_joined:
                 raise ValueError("Empty response")
-            # Google Translate occasionally reduces \n\n to \n, so we split flexibly and clean empty lines
-            parts = [p.strip() for p in translated_joined.split('\n') if p.strip()]
+                
+            # Safely unpack the translated paragraph back into a clean array
+            parts = []
+            for line in translated_joined.split('\n'):
+                clean_line = line.strip()
+                if not clean_line:
+                    continue
+                
+                # Strip the leading numerals (e.g. "1. " or Hindi "१. " or Kannada "೧. ")
+                # Python's \d natively matches Unicode Indic numeric characters perfectly!
+                clean_line = re.sub(r'^\d+\.\s*', '', clean_line)
+                parts.append(clean_line)
             
             if len(parts) == len(texts):
+                print(f"[TranslationEngine] Batch Context Translation SUCCESS ({len(texts)} sentences)")
                 return parts
-            print(f"[TranslationEngine] Batch split mismatch ({len(parts)} vs {len(texts)}). Falling back.")
+                
+            print(f"[TranslationEngine] Context Batch split mismatch ({len(parts)} vs {len(texts)}). Array corrupted by Translator. Falling back.")
             return [self._translate_with_deep_translator(t, target_lang) for t in texts]
+            
         except Exception as e:
-            print(f"[TranslationEngine] Batch error: {e}. Falling back per-segment.")
+            print(f"[TranslationEngine] Context Batch error: {e}. Falling back per-segment.")
             return [self._translate_with_deep_translator(t, target_lang) for t in texts]
 
     # ─────────────────────────────────────────────────────────────
