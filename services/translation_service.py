@@ -74,9 +74,9 @@ class TranslationEngine:
         sarvam_source = _SARVAM_LANG_MAP.get(source_lang, f"{source_lang}-IN")
         sarvam_target = _SARVAM_LANG_MAP.get(target_lang, f"{target_lang}-IN")
 
-        # Auto-mode: colloquial for short conversational dialogue, formal for longer narration
+        # Auto-mode: modern-colloquial for short conversational dialogue, formal for longer narration
         word_count = len(text.split())
-        translation_mode = "colloquial" if word_count <= 30 else "formal"
+        translation_mode = "modern-colloquial" if word_count <= 30 else "formal"
 
         headers = {
             "Content-Type": "application/json",
@@ -92,7 +92,7 @@ class TranslationEngine:
                 "target_language_code": sarvam_target,
                 "speaker_gender": speaker_gender,
                 "mode": translation_mode,
-                "model": "mayura:v2",
+                "model": "mayura:v1",
                 "enable_preprocessing": True,
             }
             translated_chunk = chunk
