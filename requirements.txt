@@ -11,6 +11,7 @@ deep-translator==1.11.4      # Stage 3: Free Translation (Google Translate fallb
 gtts>=2.5.0                  # Stage 4: Fallback TTS for XTTS-unsupported languages (e.g. Kannada)
 librosa>=0.10.0              # Stage 4: Pitch/F0 analysis for speaker gender detection
 edge-tts>=6.1.0              # Stage 4: Gender-specific neural TTS for Indic languages
+nest_asyncio>=1.6.0          # Stage 4: Allows Edge-TTS async to run safely inside Streamlit's event loop
 
 # Audio Processing
 pydub==0.25.1                # Stage 5: Audio mixing, EQ

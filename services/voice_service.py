@@ -419,7 +419,13 @@ class VoiceCloningService:
 
     def _generate_with_edge_tts(self, text: str, language: str, gender: str,
                                 out_path: str, speed: float = 1.0) -> bool:
-        """Generate speech using Microsoft Edge TTS with gender-specific neural voices."""
+        """Generate speech using Microsoft Edge TTS with gender-specific neural voices.
+        
+        Uses a Streamlit-safe async execution strategy:
+        - If no event loop is running (standard script), uses asyncio.run().
+        - If inside Streamlit/Jupyter (event loop already running), uses nest_asyncio
+          to safely patch and run inside the existing loop.
+        """
         try:
             import edge_tts
             voices = _EDGE_TTS_VOICES.get(language, _EDGE_TTS_DEFAULT)
@@ -436,32 +442,64 @@ class VoiceCloningService:
                         mp3_data += chunk["data"]
                 return mp3_data
 
-            mp3_data = asyncio.run(_run())
+            # Streamlit runs its own event loop — asyncio.run() would crash with
+            # 'This event loop is already running'. We detect and handle both cases.
+            try:
+                loop = asyncio.get_running_loop()
+                # We ARE inside a running loop (Streamlit context)
+                import nest_asyncio
+                nest_asyncio.apply()
+                mp3_data = loop.run_until_complete(_run())
+            except RuntimeError:
+                # No running loop — safe to use asyncio.run() directly
+                mp3_data = asyncio.run(_run())
+
             if not mp3_data:
                 raise ValueError("Edge-TTS returned empty audio")
 
             audio = AudioSegment.from_file(io.BytesIO(mp3_data), format="mp3")
             audio.export(out_path, format="wav")
-            print(f"[VoiceCloningService] Edge-TTS ✓ voice='{voice_name}' gender='{gender}'")
+            print(f"[VoiceCloningService] Edge-TTS ✓ voice='{voice_name}' rate='{rate_str}' gender='{gender}'")
             return True
         except Exception as e:
             print(f"[VoiceCloningService] Edge-TTS failed ({e}), falling back to gTTS")
             return self._generate_with_gtts_fallback(text, language, out_path)
 
     def _generate_with_gtts_fallback(self, text: str, language: str, out_path: str) -> bool:
-        """Last-resort fallback using gTTS (no gender control)."""
+        """Last-resort fallback using gTTS (no gender control).
+        
+        gTTS does NOT support all languages (e.g. Kannada 'kn' is unsupported).
+        We remap unsupported languages to the closest supported substitute.
+        As a final safety net, a silent 1s WAV is written so the pipeline never crashes.
+        """
+        # gTTS-supported language remap: unsupported → closest substitute
+        _GTTS_LANG_REMAP = {
+            'kn': 'hi',   # Kannada not in gTTS — remap to Hindi (same script family)
+            'ml': 'hi',   # Malayalam not in gTTS
+            'te': 'hi',   # Telugu not in gTTS
+            'mr': 'hi',   # Marathi partial support — remap to Hindi
+        }
+        gtts_lang = _GTTS_LANG_REMAP.get(language, language)
+        
         try:
             from gtts import gTTS
-            tts_obj = gTTS(text=text, lang=language, slow=False)
+            tts_obj = gTTS(text=text, lang=gtts_lang, slow=False)
             mp3_buffer = io.BytesIO()
             tts_obj.write_to_fp(mp3_buffer)
             mp3_buffer.seek(0)
             audio = AudioSegment.from_file(mp3_buffer, format="mp3")
             audio.export(out_path, format="wav")
-            print(f"[VoiceCloningService] gTTS fallback ✓ language='{language}'")
+            print(f"[VoiceCloningService] gTTS fallback ✓ language='{language}' (gtts_lang='{gtts_lang}')")
             return True
         except Exception as e:
-            print(f"[VoiceCloningService] gTTS also failed: {e}")
+            print(f"[VoiceCloningService] gTTS also failed for '{language}': {e}")
+            # Final safety net: write 1 second of silence so the pipeline never crashes
+            try:
+                silence = AudioSegment.silent(duration=1000, frame_rate=22050)
+                silence.export(out_path, format="wav")
+                print(f"[VoiceCloningService] Wrote 1s silence placeholder for segment.")
+            except Exception as ex:
+                print(f"[VoiceCloningService] Even silence write failed: {ex}")
             return False
 
     def generate_speech(self, transcript: list, reference_audio: str, language: str = "en", speed: float = 1.0) -> list:
