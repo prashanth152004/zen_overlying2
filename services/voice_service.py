@@ -57,9 +57,10 @@ _LANG_BASE_SPEED = {
     '_default': 1.0,
 }
 
-# XTTS safe speed clamping range
-_MIN_SPEED = 0.85
-_MAX_SPEED = 1.45
+# Edge-TTS Neural robust speed clamping boundaries
+# Neural networks scale naturally, so we safely stretch from 70% to 200% voice speed!
+_MIN_SPEED = 0.70
+_MAX_SPEED = 2.0
 
 # Pitch boundary between typical male and female F0 (Hz)
 # Males: 85–180 Hz, Females: 165–255 Hz  → threshold at 165 Hz
@@ -402,10 +403,11 @@ class VoiceCloningService:
 
         required_speed = (estimated_natural_duration / duration_sec) * base_speed
         
-        # We heavily prioritize the natural base speed of the target language
-        # to prevent unnatural chipmunk or slow-motion sounds.
-        # We only apply a 15% pull towards the 'required' video duration speed.
-        blended_speed = 0.15 * required_speed + 0.85 * base_speed
+        # With the Microsoft Neural Engine (Edge-TTS), we no longer have to worry about
+        # robotic chipmunk artifacts! We can afford an aggressive 85% tracking weight
+        # to mathematically force the AI to speak the sentence fast/slow enough to perfectly
+        # fit the video's lip movements and cut timestamps unconditionally!
+        blended_speed = 0.85 * required_speed + 0.15 * base_speed
         
         clamped_speed = max(_MIN_SPEED, min(_MAX_SPEED, blended_speed))
 

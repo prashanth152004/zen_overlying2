@@ -4,8 +4,8 @@ import requests
 # Delimiter used to batch multiple segments in one translation call.
 # Google Translate preserves paragraph breaks perfectly, allowing context transfer.
 _BATCH_DELIMITER = "\n\n"
-# Number of consecutive segments to batch for context continuity
-_BATCH_SIZE = 5
+# Aggressive Context Mode: Batching 12 consecutive sentences translates virtually an entire scene natively
+_BATCH_SIZE = 12
 
 # Languages where deep-translator (Google) supports the target
 # (Google Translate supports kn = Kannada)
