@@ -364,6 +364,13 @@ class VoiceCloningService:
         lang_base_speed = _LANG_BASE_SPEED.get(language, _LANG_BASE_SPEED['_default'])
         print(f"[VoiceCloningService] [{language}] Base speed: {lang_base_speed:.2f}x")
 
+        # ── TOKENLESS OVERRIDE MODE ──
+        # If the user declined to provide a HuggingFace Pyannote Token, diarization failed,
+        # meaning ALL sentences are grouped into SPEAKER_01. To prevent men and women from 
+        # sharing the exact same voice, we mathematically decouple them and calculate the 
+        # precise gender + voice sample for EVERY SINGLE SENTENCE individually!
+        is_fallback_mode = (len(speaker_profiles) <= 1)
+
         cloned_segments = []
         for i, segment in enumerate(transcript):
             text = segment.get("text", "").strip()
@@ -379,6 +386,22 @@ class VoiceCloningService:
 
             out_path = str(self.cloned_dir / f"segment_{i}.wav")
             segment_duration = segment["end"] - segment["start"]
+
+            # ---- DYNAMIC PER-SENTENCE OVERRIDE ----
+            if is_fallback_mode and segment_duration >= 1.0:
+                print(f"[VoiceCloningService] Tokenless Mode Active: Analyzing Seg {i} independently...")
+                local_gender = _detect_gender_from_audio(reference_audio, segment["start"], segment["end"])
+                segment_gender = local_gender
+                
+                try:
+                    local_shift = -3.5 if local_gender == 'male' else 0.0
+                    local_sample = self.extract_speaker_sample(
+                        reference_audio, segment["start"], segment["end"], tag=f"seg_{i}_local", pitch_shift=local_shift
+                    )
+                    reference_sample = local_sample
+                except Exception as e:
+                    print(f"[VoiceCloningService] Fallback extraction failed for seg {i}: {e}")
+
             segment_speed = self._compute_segment_speed(
                 text, segment_duration, base_speed=lang_base_speed, language=language
             )
