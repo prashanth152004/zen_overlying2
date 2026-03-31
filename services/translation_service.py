@@ -94,7 +94,7 @@ class TranslationEngine:
                 "speaker_gender": speaker_gender,
                 "mode": translation_mode,
                 "model": "sarvam-translate:v1",
-                "enable_preprocessing": True,
+                "enable_preprocessing": False,  # CRITICAL: prevents numbers/names from being phonetically rewritten
             }
             translated_chunk = chunk
             for attempt in range(4):
@@ -136,9 +136,9 @@ class TranslationEngine:
                                      speaker_genders: list = None) -> list:
         """
         Context-Batch mode for Sarvam AI.
-        Groups consecutive segments into a numbered paragraph so Sarvam reads the full
-        conversational context across all sentences.
-        Falls back to per-segment on parse failure.
+        Uses indestructible alpha-anchor tags [S0], [S1]... as delimiters.
+        These tags can NEVER collide with numbers/words inside the translated sentences.
+        Falls back to per-segment if batch parse fails.
         """
         import re
 
@@ -148,9 +148,12 @@ class TranslationEngine:
         if speaker_genders is None:
             speaker_genders = ["Male"] * len(texts)
 
-        # Wrap all sentences in an indestructible numbered format
-        payload_lines = [f"{j+1}. {t}" for j, t in enumerate(texts)]
-        joined_context = "\n".join(payload_lines)
+        # CRITICAL FIX: Use alpha-anchor tags [S0], [S1]... NOT numbers (1., 2.)
+        # Numeric delimiters collide with actual numbers inside sentences (e.g. "18 years old")
+        # Alpha-anchor tags are 100% collision-proof — no translated language uses [S0] syntax.
+        tag_sep = "|||"  # unique separator that no language ever generates naturally
+        payload_lines = [f"[S{j}] {t}" for j, t in enumerate(texts)]
+        joined_context = f"\n".join(payload_lines)
 
         # Use majority gender in the batch
         male_count = sum(1 for g in speaker_genders if str(g).lower() == "male")
@@ -161,15 +164,10 @@ class TranslationEngine:
                 joined_context, source_lang, target_lang, batch_gender
             )
 
-            # Unpack the response back into a clean list
-            parts = []
-            for line in translated_joined.split("\n"):
-                clean_line = line.strip()
-                if not clean_line:
-                    continue
-                # Strip leading numerals — English digits AND Indic Unicode digits
-                clean_line = re.sub(r'^[\d\u0966-\u096F\u0CE6-\u0CEF]+\.\s*', '', clean_line)
-                parts.append(clean_line)
+            # Extract segments by splitting on [S<n>] anchor tags
+            # Regex looks ONLY for [S0], [S1]... and strips nothing else
+            raw_parts = re.split(r'\[S\d+\]\s*', translated_joined)
+            parts = [p.strip() for p in raw_parts if p.strip()]
 
             if len(parts) == len(texts):
                 print(f"[TranslationEngine] Sarvam Batch Context SUCCESS ({len(texts)} segs)")
@@ -206,19 +204,17 @@ class TranslationEngine:
 
     def _translate_batch_with_deep_translator(self, texts: list, target_lang: str) -> list:
         """
-        The 'Context-Batch' Algorithm.
-        Translates a batch of consecutive sentences as a single numbered list.
-        This fundamentally tricks Google Translate into understanding conversational
-        grammar across sentences, astronomically improving Hindi/Kannada accuracy.
+        Context-Batch translation using Google Translate.
+        Uses indestructible [S0], [S1]... alpha-anchor tags as delimiters.
+        These NEVER collide with actual numbers/words inside sentences.
         """
         from deep_translator import GoogleTranslator
         import re
 
-        # Wrap the sentences in an indestructible numbered format
-        payload_lines = []
-        for j, t in enumerate(texts):
-            payload_lines.append(f"{j+1}. {t}")
-
+        # CRITICAL FIX: Alpha-anchor tags instead of numeric prefixes
+        # Old: "1. If you are 18 years old" → regex could strip the "18"
+        # New: "[S0] If you are 18 years old" → regex only strips [S0], preserves 18
+        payload_lines = [f"[S{j}] {t}" for j, t in enumerate(texts)]
         joined_context = "\n".join(payload_lines)
         translator = GoogleTranslator(source="auto", target=target_lang)
 
@@ -228,22 +224,16 @@ class TranslationEngine:
             if not translated_joined:
                 raise ValueError("Empty response")
 
-            # Safely unpack the translated paragraph back into a clean array
-            parts = []
-            for line in translated_joined.split("\n"):
-                clean_line = line.strip()
-                if not clean_line:
-                    continue
-                # Strip the leading numerals (e.g. "1. " or Hindi "१. " or Kannada "೧. ")
-                clean_line = re.sub(r'^\d+\.\s*', '', clean_line)
-                parts.append(clean_line)
+            # Extract segments by splitting on [S<n>] anchor tags
+            raw_parts = re.split(r'\[S\d+\]\s*', translated_joined)
+            parts = [p.strip() for p in raw_parts if p.strip()]
 
             if len(parts) == len(texts):
                 print(f"[TranslationEngine] Batch Context Translation SUCCESS ({len(texts)} sentences)")
                 return parts
 
             print(f"[TranslationEngine] Context Batch split mismatch ({len(parts)} vs {len(texts)}). "
-                  f"Array corrupted by Translator. Falling back.")
+                  f"Array corrupted by Translator. Falling back per-segment.")
             return [self._translate_with_deep_translator(t, target_lang) for t in texts]
 
         except Exception as e:
