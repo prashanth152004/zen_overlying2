@@ -537,13 +537,21 @@ class VoiceCloningService:
             xtts_language = language
             segment_use_xtts = use_xtts
             
-            if language == 'kn':
+            # ── THE EDGE-TTS OVERRIDE INTERCEPTOR ──
+            # XTTS fundamentally lacks robust male Hindi/Indic training data and hallucinate female voices.
+            # To preserve perfect gender mappings, we forcefully drop XTTS and re-route all Indian Males into Microsoft Neural.
+            # English remains fully voice-cloned!
+            is_indic_language = language in ['hi', 'kn', 'ta', 'te', 'mr', 'gu', 'bn', 'ml']
+            if is_indic_language and segment_gender == 'male':
+                print(f"[VoiceCloningService] Seg {i} [Male Indic Detected] → Bypassing XTTS hallucination. Routing Engine locked to Edge-TTS!")
+                segment_use_xtts = False
+            
+            if language == 'kn' and segment_use_xtts:
                 try:
                     from indic_transliteration import sanscript
                     # Transform Kannada Unicode -> Devanagari Unicode
                     xtts_text = sanscript.transliterate(text, sanscript.KANNADA, sanscript.DEVANAGARI)
                     xtts_language = 'hi'  # Trick the model into reading it phonetically
-                    segment_use_xtts = True
                     print(f"[VoiceCloningService] Transliterated KN→HI for XTTS: '{xtts_text[:20]}…'")
                 except ImportError:
                     print("[VoiceCloningService] indic-transliteration missing! Falling back to Edge-TTS.")
