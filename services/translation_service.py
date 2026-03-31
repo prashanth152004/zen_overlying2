@@ -74,10 +74,11 @@ class TranslationEngine:
         sarvam_source = _SARVAM_LANG_MAP.get(source_lang, f"{source_lang}-IN")
         sarvam_target = _SARVAM_LANG_MAP.get(target_lang, f"{target_lang}-IN")
 
-        # Strict Formal Mode: Indian regional languages use intense 'Code-Mixing' (Kanglish/Hinglish)
-        # in 'modern-colloquial' mode. To guarantee 100% pure Kannada/Hindi vocabulary for subtitles
-        # and dubbing, we MUST lock the translation mode to 'formal' regardless of sentence length.
-        translation_mode = "formal"
+        # Smart Vibe Matching: To match the original video perfectly, we use 'classic-colloquial'.
+        # Unlike 'modern-colloquial' (which injects English), 'classic' enforces 100% native vocabulary.
+        # But unlike 'formal', 'colloquial' ensures the grammar is casually paced and conversational,
+        # allowing the AI voice to mimic the original speaker's exact spoken vibe!
+        translation_mode = "classic-colloquial"
 
         headers = {
             "Content-Type": "application/json",
