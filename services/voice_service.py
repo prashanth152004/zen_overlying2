@@ -26,6 +26,7 @@ _XTTS_SUPPORTED = {
 
 # Edge-TTS voice names per language per gender
 _EDGE_TTS_VOICES = {
+    'en': {'male': 'en-IN-PrabhatNeural',  'female': 'en-IN-NeerjaNeural'},
     'hi': {'male': 'hi-IN-MadhurNeural',   'female': 'hi-IN-SwaraNeural'},
     'kn': {'male': 'kn-IN-GaganNeural',   'female': 'kn-IN-SapnaNeural'},
     'ta': {'male': 'ta-IN-ValluvarNeural', 'female': 'ta-IN-PallaviNeural'},
@@ -537,14 +538,12 @@ class VoiceCloningService:
             xtts_language = language
             segment_use_xtts = use_xtts
             
-            # ── THE EDGE-TTS OVERRIDE INTERCEPTOR ──
-            # XTTS fundamentally lacks robust male Hindi/Indic training data and hallucinate female voices.
-            # To preserve perfect gender mappings, we forcefully drop XTTS and re-route all Indian Males into Microsoft Neural.
-            # English remains fully voice-cloned!
-            is_indic_language = language in ['hi', 'kn', 'ta', 'te', 'mr', 'gu', 'bn', 'ml']
-            if is_indic_language and segment_gender == 'male':
-                print(f"[VoiceCloningService] Seg {i} [Male Indic Detected] → Bypassing XTTS hallucination. Routing Engine locked to Edge-TTS!")
-                segment_use_xtts = False
+            # ── UNIVERSAL EDGE-TTS INTERCEPTOR ──
+            # Open-Source XTTS fundamentally lacks structural stability across languages and hallucinates gender.
+            # To preserve mathematically perfect gender translation and broadcast-quality purity across EVERY
+            # language unconditionally, we sever XTTS entirely and reroute 100% of all scripts into Microsoft Neural.
+            print(f"[VoiceCloningService] Seg {i} [{segment_gender}] → Forcing Microsoft Edge-TTS Cloud API. Bypassing XTTS strictly.")
+            segment_use_xtts = False
             
             if language == 'kn' and segment_use_xtts:
                 try:
