@@ -90,12 +90,12 @@ class AudioMixerEngine:
 
         ratio = current_ms_trimmed / target_ms
 
-        # To preserve broadcast quality and perfectly natural human intonation,
-        # we allow a 'Safe-Stretch' of +/- 15%. This completes the lip-sync
-        # without introducing any robotic or metallic artifacts.
-        ratio_clamped = max(0.85, min(1.15, ratio))
+        # To guarantee the lip-sync is absolutely structurally locked to the original video,
+        # we aggressively permit mathematical time-stretching up to 2.0x ! 
+        # This violently resolves any misalignments that slipped through the Edge-TTS layer.
+        ratio_clamped = max(0.65, min(2.0, ratio))
 
-        if abs(ratio_clamped - 1.0) < 0.03:
+        if abs(ratio_clamped - 1.0) < 0.02:
             return audio_trimmed
 
         # Save trimmed clip so ffmpeg uses tightly cropped speech

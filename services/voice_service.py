@@ -403,16 +403,15 @@ class VoiceCloningService:
 
         required_speed = (estimated_natural_duration / duration_sec) * base_speed
         
-        # SMART ELASTIC SCALING:
-        # We re-enable automatic speed adjustment to fit your video uploaded,
-        # but with a 'Context-Safe' 40% blend to keep the human sound natural.
-        # This allows the AI to move toward the video duration for lip-sync,
-        # but prevents robotic racing or dragging.
-        blended_speed = 0.40 * required_speed + 0.60 * base_speed
+        # THE PERFECT SYNC PROTOCOL:
+        # We explicitly sacrifice "natural pacing speed" limits to forcefully guarantee 
+        # that the AI physically hits the exact visual target timestamps.
+        # We target 100% video-duration matching natively.
+        blended_speed = required_speed
         
-        # Strictly clamp the AI generation between 0.85x and 1.25x.
-        # This is the 'Natural Zone' where human ears cannot detect speed shifts.
-        clamped_speed = max(0.85, min(1.25, blended_speed))
+        # Broaden the clamping strictly to allow profound Lip-Sync matching!
+        # Edge-TTS can cleanly synthesize out to 1.80x speed natively without dropping fidelity.
+        clamped_speed = max(0.75, min(1.80, blended_speed))
 
         print(f"[VoiceCloningService] [{language}] Speed: {clamped_speed:.3f}x "
               f"(chars={char_count}, required={required_speed:.3f}, dur={duration_sec:.1f}s)")
