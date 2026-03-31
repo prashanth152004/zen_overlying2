@@ -148,8 +148,8 @@ def _detect_gender_from_audio(audio_path: str, start: float, end: float) -> str:
         # ── Gender classification ─────────────────────────────────────────────
         # Female range: 160–300 Hz (lower bound 160 to catch contralto speakers)
         # Male   range:  65–180 Hz
-        # Raising overlap threshold to 185Hz to prevent misclassifying higher-pitched males
-        if representative_f0 >= 185.0:
+        # Raising overlap threshold to 195.0Hz to definitively prevent misclassifying higher-pitched males
+        if representative_f0 >= 195.0:
             gender = 'female'
         else:
             gender = 'male'
@@ -254,7 +254,7 @@ def _cluster_genders_by_pitch_and_timbre(transcript: list, audio_path: str) -> d
             if pitch_gap < 45.0:
                 print(f"[VoiceCloningService] Centroid gap {pitch_gap:.1f}Hz < 45Hz. Collapsing into ONE gender!")
                 global_avg_pitch = (pitch_0 + pitch_1) / 2.0
-                resolved_gender = 'female' if global_avg_pitch > 175.0 else 'male'
+                resolved_gender = 'female' if global_avg_pitch > 195.0 else 'male'
                 # Lock both randomly split clusters together into the same gender
                 cluster_gender_map = {0: resolved_gender, 1: resolved_gender}
             else:
@@ -267,7 +267,7 @@ def _cluster_genders_by_pitch_and_timbre(transcript: list, audio_path: str) -> d
         else:
             # Only 1 cluster generated
             single_pitch = cluster_pitches[0]
-            resolved_gender = 'female' if single_pitch > 175.0 else 'male'
+            resolved_gender = 'female' if single_pitch > 195.0 else 'male'
             cluster_gender_map = {0: resolved_gender}
         
         mapped_genders = {}
