@@ -319,7 +319,7 @@ with col2:
                 # Notify user that Fallback Mode engaged
                 num_speakers = len(set(seg.get('speaker_id') for seg in results.get("transcript", [])))
                 if num_speakers <= 1:
-                    st.info("⚡ **Tokenless Smart-Scan Active:** Hugging Face authentication was skipped. The AI successfully dropped into Fallback Mode and is mathematically analyzing the gender of every single sentence independently!")
+                    st.info("⚡ **Tokenless Smart-Scan Active:** Hugging Face authentication bypassed. The AI successfully dropped into Tokenless Mode and is running Scipy K-Means Acoustic Timbre clustering mapping to prevent mid-conversation gender flips!")
 
                 # Store results in session_state so UI interactions don't reload the pipeline
                 st.session_state["pipeline_results"] = results

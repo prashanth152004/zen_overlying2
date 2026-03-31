@@ -164,6 +164,96 @@ def _detect_gender_from_audio(audio_path: str, start: float, end: float) -> str:
         return 'male'
 
 
+def _cluster_genders_by_pitch_and_timbre(transcript: list, audio_path: str) -> dict:
+    """
+    Tokenless Fallback Upgrade:
+    Extracts 13 MFCC physical vocal tract dimensions + 1 Pitch F0 median per sentence.
+    Runs Scipy K-Means (k=2) to cluster all sentences identically across the video,
+    entirely bypassing mid-video shouting or pitch spikes that confuse raw thresholding.
+    Returns: mapped dict of {segment_index: 'male' / 'female'}
+    """
+    try:
+        import librosa
+        import numpy as np
+        import io
+        from scipy.cluster.vq import kmeans2, whiten
+        from pydub import AudioSegment
+        
+        print(f"[VoiceCloningService] Tokenless Acoustic Scan activated across {len(transcript)} segments...")
+        
+        features = []
+        valid_indices = []
+        full_audio = AudioSegment.from_file(audio_path)
+        
+        for i, segment in enumerate(transcript):
+            start, end = segment["start"], segment["end"]
+            dur = end - start
+            if dur < 1.0:
+                continue
+                
+            # Tightly bound the vocal filter for structural tract extraction
+            clip = full_audio[start * 1000 : end * 1000].set_channels(1)
+            clip = clip.high_pass_filter(50).low_pass_filter(2000)
+            
+            buf = io.BytesIO()
+            clip.export(buf, format="wav")
+            buf.seek(0)
+            
+            y, sr = librosa.load(buf, sr=16000)
+            if len(y) < sr * 0.3:
+                continue
+                
+            # Extract Pitch (F0)
+            f0_frames, voiced_flag, _ = librosa.pyin(
+                y, fmin=65, fmax=400, sr=sr, frame_length=2048, hop_length=512
+            )
+            f0 = f0_frames[voiced_flag & (f0_frames > 60)]
+            median_f0 = float(np.median(f0)) if len(f0) > 5 else 185.0
+            
+            # Extract Biological Timbre Shape (MFCC)
+            mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
+            mfcc_mean = np.mean(mfcc, axis=1)
+            
+            # Construct 14-dimensional Physical Voice Vector!
+            vec = np.append(mfcc_mean, median_f0)
+            features.append(vec)
+            valid_indices.append(i)
+            
+        n_clusters = min(2, len(features))
+        if n_clusters < 2:
+            return {i: 'male' for i in range(len(transcript))}
+            
+        data = np.array(features)
+        
+        # Whitening neutralizes the massive mathematical scale differences between 
+        # a 180Hz Pitch unit and a 0.2 MFCC resonance unit!
+        whitened = whiten(data)
+        
+        # K-Means categorizes all physical vectors into exactly two groups
+        centroids, labels = kmeans2(whitened, k=n_clusters, minit='++')
+        
+        # Determine the Man's cluster by finding which Vector Centroid has the lowest Pitch!
+        cluster_pitches = []
+        for cluster_id in range(n_clusters):
+            mask = (labels == cluster_id)
+            avg_f0 = np.mean(data[mask, 13]) if np.any(mask) else 185.0
+            cluster_pitches.append(avg_f0)
+            
+        male_cluster_id = np.argmin(cluster_pitches)
+        
+        mapped_genders = {}
+        for idx, segment_label in zip(valid_indices, labels):
+            mapped_genders[idx] = 'male' if segment_label == male_cluster_id else 'female'
+            f0 = data[valid_indices.index(idx), 13]
+            print(f"[VoiceCloningService] K-Means clustered Seg {idx} (Avg Pitch={f0:.1f}Hz) → {mapped_genders[idx]}")
+            
+        return mapped_genders
+        
+    except Exception as e:
+        print(f"[VoiceCloningService] K-Means Audio Clustering Error: {e}. Bypassing.")
+        return {}
+
+
 class VoiceCloningService:
     def __init__(self, work_dir: Path):
         self.work_dir = work_dir
@@ -370,6 +460,9 @@ class VoiceCloningService:
         # sharing the exact same voice, we mathematically decouple them and calculate the 
         # precise gender + voice sample for EVERY SINGLE SENTENCE individually!
         is_fallback_mode = (len(speaker_profiles) <= 1)
+        fallback_gender_map = {}
+        if is_fallback_mode:
+            fallback_gender_map = _cluster_genders_by_pitch_and_timbre(transcript, reference_audio)
 
         cloned_segments = []
         for i, segment in enumerate(transcript):
@@ -388,9 +481,9 @@ class VoiceCloningService:
             segment_duration = segment["end"] - segment["start"]
 
             # ---- DYNAMIC PER-SENTENCE OVERRIDE ----
-            if is_fallback_mode and segment_duration >= 1.0:
-                print(f"[VoiceCloningService] Tokenless Mode Active: Analyzing Seg {i} independently...")
-                local_gender = _detect_gender_from_audio(reference_audio, segment["start"], segment["end"])
+            if is_fallback_mode and i in fallback_gender_map:
+                print(f"[VoiceCloningService] Tokenless Mode Active: Applying K-Means clustered gender for Seg {i}...")
+                local_gender = fallback_gender_map[i]
                 segment_gender = local_gender
                 
                 try:
