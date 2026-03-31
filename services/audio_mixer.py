@@ -90,12 +90,13 @@ class AudioMixerEngine:
 
         ratio = current_ms_trimmed / target_ms
 
-        # To guarantee the lip-sync is "as good as original", we must stretch the trimmed
-        # speech to perfectly match the original video's target_ms.
-        # We allow a wide range [0.5x – 3.0x] so it perfectly matches visual mouth movements.
-        ratio_clamped = max(0.5, min(3.0, ratio))
+        # To preserve broadcast quality and perfectly natural human intonation,
+        # we abandon aggressive mechanical timeline stretching.
+        # We only permit tiny micro-adjustments (+/- 10%) that the ear cannot physically perceive.
+        # If the translation is significantly longer, it will peacefully overlap into the scene exactly like premium dubs!
+        ratio_clamped = max(0.90, min(1.10, ratio))
 
-        if abs(ratio_clamped - 1.0) < 0.02:
+        if abs(ratio_clamped - 1.0) < 0.03:
             return audio_trimmed
 
         # Save trimmed clip so ffmpeg uses tightly cropped speech

@@ -403,11 +403,11 @@ class VoiceCloningService:
 
         required_speed = (estimated_natural_duration / duration_sec) * base_speed
         
-        # With the Microsoft Neural Engine (Edge-TTS), we no longer have to worry about
-        # robotic chipmunk artifacts! We can afford an aggressive 85% tracking weight
-        # to mathematically force the AI to speak the sentence fast/slow enough to perfectly
-        # fit the video's lip movements and cut timestamps unconditionally!
-        blended_speed = 0.85 * required_speed + 0.15 * base_speed
+        # To perfectly preserve the natural human tone and cadence of each dialect,
+        # we completely abandon timeline-forced speed tracking.
+        # The AI generates at exactly the natural speaking pace of the language!
+        # (e.g. English defaults to 1.05x, Kannada naturally plays at 0.92x)
+        blended_speed = base_speed
         
         clamped_speed = max(_MIN_SPEED, min(_MAX_SPEED, blended_speed))
 
