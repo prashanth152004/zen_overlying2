@@ -26,6 +26,49 @@ class TranslationEngine:
         self.api_key = api_key
 
     # ─────────────────────────────────────────────────────────────
+    # LITERAL PROTECTION ENGINE
+    # ─────────────────────────────────────────────────────────────
+
+    def _protect_literals(self, text: str) -> tuple:
+        """
+        Shields numbers, URLs, and website domains from being rewritten by the AI.
+        Replaces them with indestructible placeholders: __LIT0__, __LIT1__...
+        Returns (protected_text, protected_dict)
+        """
+        import re
+        protected = {}
+        counter = [0]
+
+        def make_key():
+            key = f"__LIT{counter[0]}__"
+            counter[0] += 1
+            return key
+
+        result = text
+
+        # 1. Protect full URLs — e.g. https://passportseva.gov.in
+        def protect_url(m):
+            key = make_key()
+            protected[key] = m.group(0)
+            return key
+        result = re.sub(r'https?://\S+', protect_url, result)
+
+        # 2. Protect website domains — e.g. passportseva.com, parivansewa.com
+        result = re.sub(r'\b[a-zA-Z0-9.-]+\.(?:com|in|gov|org|net|co|io)\b', protect_url, result)
+
+        # 3. Protect standalone numbers, decimals, percentages — e.g. 18, 4, 100%
+        result = re.sub(r'\b\d+(?:[.,]\d+)*\s*%?\b', protect_url, result)
+
+        return result, protected
+
+    def _restore_literals(self, text: str, protected: dict) -> str:
+        """Restores all protected literals back into the translated text exactly as they were."""
+        result = text
+        for key, value in protected.items():
+            result = result.replace(key, value)
+        return result
+
+    # ─────────────────────────────────────────────────────────────
     # TEXT CHUNKER
     # ─────────────────────────────────────────────────────────────
 
@@ -65,10 +108,13 @@ class TranslationEngine:
 
     def _translate_with_sarvam(self, text: str, source_lang: str, target_lang: str,
                                 speaker_gender: str = "Male") -> str:
-        """Translate a single text chunk with Sarvam AI mayura:v2."""
+        """Translate a single text chunk with Sarvam AI — with literal number/URL protection."""
         if not self.api_key:
             print("[TranslationEngine] No Sarvam API Key — falling back to deep-translator.")
             return self._translate_with_deep_translator(text, target_lang)
+
+        # ── LITERAL PROTECTION: shield numbers/URLs/domains before sending to AI ──
+        protected_text, protected = self._protect_literals(text)
 
         url = "https://api.sarvam.ai/translate"
         sarvam_source = _SARVAM_LANG_MAP.get(source_lang, f"{source_lang}-IN")
@@ -83,7 +129,7 @@ class TranslationEngine:
             "Content-Type": "application/json",
             "api-subscription-key": self.api_key
         }
-        chunks = self._chunk_text(text, max_chars=480)
+        chunks = self._chunk_text(protected_text, max_chars=480)
         translated_chunks = []
 
         for chunk in chunks:
@@ -126,7 +172,9 @@ class TranslationEngine:
                     break
             translated_chunks.append(translated_chunk)
 
-        return " ".join(translated_chunks)
+        raw_result = " ".join(translated_chunks)
+        # ── RESTORE all protected numbers, URLs, domains back exactly ──
+        return self._restore_literals(raw_result, protected)
 
     # ─────────────────────────────────────────────────────────────
     # SARVAM AI — Context-Batch mode
@@ -193,14 +241,18 @@ class TranslationEngine:
 
     def _translate_with_deep_translator(self, text: str, target_lang: str) -> str:
         from deep_translator import GoogleTranslator
+        # ── LITERAL PROTECTION ──
+        protected_text, protected = self._protect_literals(text)
         translator = GoogleTranslator(source="auto", target=target_lang)
         try:
-            translated = translator.translate(text)
+            translated = translator.translate(protected_text)
             time.sleep(0.1)
-            return translated if translated else text
+            result = translated if translated else protected_text
+            # Restore numbers/URLs exactly as original
+            return self._restore_literals(result, protected)
         except Exception as e:
             print(f"[TranslationEngine] deep-translator error: {e}")
-            return text
+            return text  # on complete failure, return original text unchanged
 
     def _translate_batch_with_deep_translator(self, texts: list, target_lang: str) -> list:
         """
