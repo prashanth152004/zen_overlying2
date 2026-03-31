@@ -123,11 +123,25 @@ class TranslationPipeline:
             }
         }
 
-        # Generate subtitles for the original language too
-        # (transcript is in English if source was kn/hi, otherwise in the source lang)
-        original_subtitle_path = self.subtitle_engine.generate_subtitles(
-            english_transcript, language=detected_lang
-        )
+        # Generate subtitles for the original language track.
+        # IMPORTANT: When source is kn or hi, Whisper translates audio to English
+        # (task='translate'). So english_transcript is always in English.
+        # To produce correct native-language subtitles, we must re-translate
+        # the English back to the source language.
+        if detected_lang == "en":
+            # English source: Whisper output IS English, use directly
+            original_subtitle_path = self.subtitle_engine.generate_subtitles(
+                english_transcript, language="en"
+            )
+        else:
+            # Hindi/Kannada source: re-translate English → source language
+            print(f"[Pipeline] Generating native {detected_lang} subtitle track from English base...")
+            native_transcript = translation_service.translate_transcript(
+                english_transcript, source="en", target=detected_lang
+            )
+            original_subtitle_path = self.subtitle_engine.generate_subtitles(
+                native_transcript, language=detected_lang
+            )
         results["subtitles"][detected_lang] = original_subtitle_path
 
         # ── Stage 3–5 Loop: per target language ───────────────────────────
