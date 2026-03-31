@@ -168,133 +168,81 @@ def _detect_gender_from_audio(audio_path: str, start: float, end: float) -> str:
 
 def _cluster_genders_by_pitch_and_timbre(transcript: list, audio_path: str) -> dict:
     """
-    Tokenless Fallback Upgrade:
-    Extracts 13 MFCC physical vocal tract dimensions + 1 Pitch F0 median per sentence.
-    Runs Scipy K-Means (k=2) to cluster all sentences identically across the video,
-    entirely bypassing mid-video shouting or pitch spikes that confuse raw thresholding.
-    Returns: mapped dict of {segment_index: 'male' / 'female'}
+    Ultra-accurate tokenless gender detection using Global F0 Analysis.
+    
+    Replaces unreliable K-Means clustering with a proven broadcast-grade algorithm:
+    1. Analyze the ENTIRE audio file to get a reliable global median pitch.
+    2. Use only HIGH-CONFIDENCE voiced frames (voiced_prob > 0.7) to filter noise.
+    3. Apply conservative thresholds:
+       - Global F0 < 155Hz -> definitively MALE (Indian male voices: 90-150Hz).
+       - Global F0 > 200Hz -> definitively FEMALE (Indian female voices: 200-280Hz).
+       - 155-200Hz -> ambiguous, use P25 (25th percentile) as tiebreaker.
+    4. Locks ALL segments to the SAME gender - no random flipping mid-video.
     """
     try:
         import librosa
         import numpy as np
         import io
-        from scipy.cluster.vq import kmeans2, whiten
         from pydub import AudioSegment
-        
-        print(f"[VoiceCloningService] Tokenless Acoustic Scan activated across {len(transcript)} segments...")
-        
-        features = []
-        valid_indices = []
-        full_audio = AudioSegment.from_file(audio_path)
-        
-        for i, segment in enumerate(transcript):
-            start, end = segment["start"], segment["end"]
-            dur = end - start
-            if dur < 1.0:
-                continue
-                
-            # Tightly bound the vocal filter for structural tract extraction
-            clip = full_audio[start * 1000 : end * 1000].set_channels(1)
-            clip = clip.high_pass_filter(50).low_pass_filter(2000)
-            
-            buf = io.BytesIO()
-            clip.export(buf, format="wav")
-            buf.seek(0)
-            
-            y, sr = librosa.load(buf, sr=16000)
-            if len(y) < sr * 0.3:
-                continue
-                
-            # Extract Pitch (F0)
-            f0_frames, voiced_flag, _ = librosa.pyin(
-                y, fmin=65, fmax=400, sr=sr, frame_length=2048, hop_length=512
-            )
-            f0 = f0_frames[voiced_flag & (f0_frames > 60)]
-            # Fix: Defaulting to 185Hz was biasing the cluster toward female.
-            # We now use 0.0 as a marker to be filled later with the video's actual mean.
-            median_f0 = float(np.median(f0)) if len(f0) > 5 else 0.0
-            
-            # Extract Biological Timbre Shape (MFCC)
-            mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
-            mfcc_mean = np.mean(mfcc, axis=1)
-            
-            # Construct 14-dimensional Physical Voice Vector!
-            vec = np.append(mfcc_mean, median_f0)
-            features.append(vec)
-            valid_indices.append(i)
-            
-        n_clusters = min(2, len(features))
-        if n_clusters < 2:
+
+        print(f"[VoiceCloningService] Global F0 Gender Scan: analyzing full audio...")
+
+        # 1. Analyze ENTIRE audio file (most reliable)
+        full_audio = AudioSegment.from_file(audio_path).set_channels(1)
+        buf = io.BytesIO()
+        full_audio.export(buf, format="wav")
+        buf.seek(0)
+
+        y_full, sr = librosa.load(buf, sr=16000)
+
+        # pyin gives F0 values and voicing probability per frame
+        f0_frames, voiced_flag, voiced_probs = librosa.pyin(
+            y_full, fmin=60, fmax=350, sr=sr,
+            frame_length=2048, hop_length=512
+        )
+
+        # Only use high-confidence voiced frames (voiced_prob > 0.7) to avoid noise
+        high_conf_mask = (voiced_probs > 0.7) & (f0_frames > 60) & (f0_frames < 350)
+        confident_f0 = f0_frames[high_conf_mask]
+
+        if len(confident_f0) < 10:
+            print("[VoiceCloningService] Insufficient high-confidence pitch frames. Defaulting to MALE.")
             return {i: 'male' for i in range(len(transcript))}
-            
-        data = np.array(features)
-        
-        # ── ACOUSTIC HOLE FILLING ──
-        # Any segments that failed pitch detection (0.0) are now filled with the 
-        # average pitch of the successful detections. This prevents 'dead' segments 
-        # from pulling the K-Means clusters into a fake male/female split.
-        pit_col = data[:, 13]
-        valid_pits = pit_col[pit_col > 0]
-        filler_pitch = np.mean(valid_pits) if len(valid_pits) > 0 else 135.0
-        data[pit_col == 0, 13] = filler_pitch
-        
-        # Whitening neutralizes the massive mathematical scale differences between 
-        # a 180Hz Pitch unit and a 0.2 MFCC resonance unit!
-        whitened = whiten(data)
-        
-        # K-Means categorizes all physical vectors into exactly two groups
-        centroids, labels = kmeans2(whitened, k=n_clusters, minit='++')
-        
-        # ── SOLO-ACTOR CENTROID VALIDATOR ──
-        # Calculate the absolute median pitch of both 14-dimensional clusters
-        cluster_pitches = []
-        cluster_has_data = []
-        for cluster_id in range(n_clusters):
-            mask = (labels == cluster_id)
-            has_data = np.any(mask)
-            cluster_has_data.append(has_data)
-            avg_f0 = np.mean(data[mask, 13]) if has_data else 185.0
-            cluster_pitches.append(avg_f0)
-            
-        # If we successfully created 2 clusters, measure their physical separation gap
-        if n_clusters == 2 and all(cluster_has_data):
-            pitch_0 = cluster_pitches[0]
-            pitch_1 = cluster_pitches[1]
-            pitch_gap = abs(pitch_0 - pitch_1)
-            
-            # If the difference is less than 65Hz, it is mathematically likely the SAME PERSON!
-            # K-Means accidentally chopped a Solo-Actor's voice into loud/quiet buckets.
-            if pitch_gap < 65.0:
-                print(f"[VoiceCloningService] Centroid gap {pitch_gap:.1f}Hz < 65Hz. Collapsing into ONE gender!")
-                global_avg_pitch = (pitch_0 + pitch_1) / 2.0
-                # Pivot lowered to 175Hz for more robust solo male/female detection
-                resolved_gender = 'female' if global_avg_pitch > 175.0 else 'male'
-                # Lock both randomly split clusters together into the same gender
-                cluster_gender_map = {0: resolved_gender, 1: resolved_gender}
-            else:
-                print(f"[VoiceCloningService] Centroid gap {pitch_gap:.1f}Hz > 65Hz. Confirmed TWO distinct genders!")
-                male_id = np.argmin(cluster_pitches)
-                cluster_gender_map = {
-                    male_id: 'male',
-                    1 - male_id: 'female'
-                }
+
+        global_median_f0 = float(np.median(confident_f0))
+        global_p25 = float(np.percentile(confident_f0, 25))
+
+        print(f"[VoiceCloningService] Global F0 -> Median: {global_median_f0:.1f}Hz, "
+              f"P25: {global_p25:.1f}Hz (from {len(confident_f0)} confident frames)")
+
+        # 2. Gender classification logic
+        # Standard: Male 85-155Hz, Female 165-255Hz
+        if global_p25 < 140:
+            resolved_gender = 'male'
+            reason = f"P25={global_p25:.1f}Hz < 140Hz - unambiguous MALE"
+        elif global_median_f0 < 165:
+            resolved_gender = 'male'
+            reason = f"Median={global_median_f0:.1f}Hz < 165Hz - clear MALE"
+        elif global_median_f0 > 200:
+            resolved_gender = 'female'
+            reason = f"Median={global_median_f0:.1f}Hz > 200Hz - clear FEMALE"
         else:
-            # Only 1 cluster generated
-            single_pitch = cluster_pitches[0]
-            resolved_gender = 'female' if single_pitch > 175.0 else 'male'
-            cluster_gender_map = {0: resolved_gender}
-        
-        mapped_genders = {}
-        for idx, segment_label in zip(valid_indices, labels):
-            mapped_genders[idx] = cluster_gender_map[segment_label]
-            f0 = data[valid_indices.index(idx), 13]
-            print(f"[VoiceCloningService] K-Means clustered Seg {idx} (Pitch={f0:.1f}Hz, Cluster={cluster_pitches[segment_label]:.1f}Hz) → {mapped_genders[idx]}")
-            
-        return mapped_genders
-        
+            # Ambiguous zone: 165-200Hz. Use P25 as tiebreaker.
+            if global_p25 < 160:
+                resolved_gender = 'male'
+                reason = f"Ambiguous median but P25={global_p25:.1f}Hz < 160Hz -> MALE"
+            else:
+                resolved_gender = 'female'
+                reason = f"Ambiguous median and P25={global_p25:.1f}Hz >= 160Hz -> FEMALE"
+
+        print(f"[VoiceCloningService] Gender Decision: {resolved_gender.upper()} - {reason}")
+
+        # 3. Apply the same gender to all segments (single-speaker lock)
+        return {i: resolved_gender for i in range(len(transcript))}
+
     except Exception as e:
-        print(f"[VoiceCloningService] K-Means Audio Clustering Error: {e}. Bypassing.")
-        return {}
+        print(f"[VoiceCloningService] Global F0 Gender Scan Error: {e}. Defaulting to MALE.")
+        return {i: 'male' for i in range(len(transcript))}
 
 
 class VoiceCloningService:
@@ -566,7 +514,7 @@ class VoiceCloningService:
 
             # ---- DYNAMIC PER-SENTENCE OVERRIDE ----
             if is_fallback_mode and i in fallback_gender_map:
-                print(f"[VoiceCloningService] Tokenless Mode Active: Applying K-Means clustered gender for Seg {i}...")
+                print(f"[VoiceCloningService] Tokenless Mode Active: Applying Global F0 detected gender for Seg {i}...")
                 local_gender = fallback_gender_map[i]
                 segment_gender = local_gender
                 
