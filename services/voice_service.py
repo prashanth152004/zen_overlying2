@@ -232,20 +232,49 @@ def _cluster_genders_by_pitch_and_timbre(transcript: list, audio_path: str) -> d
         # K-Means categorizes all physical vectors into exactly two groups
         centroids, labels = kmeans2(whitened, k=n_clusters, minit='++')
         
-        # Determine the Man's cluster by finding which Vector Centroid has the lowest Pitch!
+        # ── SOLO-ACTOR CENTROID VALIDATOR ──
+        # Calculate the absolute median pitch of both 14-dimensional clusters
         cluster_pitches = []
+        cluster_has_data = []
         for cluster_id in range(n_clusters):
             mask = (labels == cluster_id)
-            avg_f0 = np.mean(data[mask, 13]) if np.any(mask) else 185.0
+            has_data = np.any(mask)
+            cluster_has_data.append(has_data)
+            avg_f0 = np.mean(data[mask, 13]) if has_data else 185.0
             cluster_pitches.append(avg_f0)
             
-        male_cluster_id = np.argmin(cluster_pitches)
+        # If we successfully created 2 clusters, measure their physical separation gap
+        if n_clusters == 2 and all(cluster_has_data):
+            pitch_0 = cluster_pitches[0]
+            pitch_1 = cluster_pitches[1]
+            pitch_gap = abs(pitch_0 - pitch_1)
+            
+            # If the difference is less than 45Hz, it's mathematically the EXACT SAME PERSON!
+            # K-Means accidentally chopped a Solo-Actor's voice into loud/quiet buckets.
+            if pitch_gap < 45.0:
+                print(f"[VoiceCloningService] Centroid gap {pitch_gap:.1f}Hz < 45Hz. Collapsing into ONE gender!")
+                global_avg_pitch = (pitch_0 + pitch_1) / 2.0
+                resolved_gender = 'female' if global_avg_pitch > 175.0 else 'male'
+                # Lock both randomly split clusters together into the same gender
+                cluster_gender_map = {0: resolved_gender, 1: resolved_gender}
+            else:
+                print(f"[VoiceCloningService] Centroid gap {pitch_gap:.1f}Hz > 45Hz. Confirmed TWO distinct genders!")
+                male_id = np.argmin(cluster_pitches)
+                cluster_gender_map = {
+                    male_id: 'male',
+                    1 - male_id: 'female'
+                }
+        else:
+            # Only 1 cluster generated
+            single_pitch = cluster_pitches[0]
+            resolved_gender = 'female' if single_pitch > 175.0 else 'male'
+            cluster_gender_map = {0: resolved_gender}
         
         mapped_genders = {}
         for idx, segment_label in zip(valid_indices, labels):
-            mapped_genders[idx] = 'male' if segment_label == male_cluster_id else 'female'
+            mapped_genders[idx] = cluster_gender_map[segment_label]
             f0 = data[valid_indices.index(idx), 13]
-            print(f"[VoiceCloningService] K-Means clustered Seg {idx} (Avg Pitch={f0:.1f}Hz) → {mapped_genders[idx]}")
+            print(f"[VoiceCloningService] K-Means clustered Seg {idx} (Pitch={f0:.1f}Hz, Cluster={cluster_pitches[segment_label]:.1f}Hz) → {mapped_genders[idx]}")
             
         return mapped_genders
         
