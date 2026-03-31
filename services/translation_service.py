@@ -74,9 +74,10 @@ class TranslationEngine:
         sarvam_source = _SARVAM_LANG_MAP.get(source_lang, f"{source_lang}-IN")
         sarvam_target = _SARVAM_LANG_MAP.get(target_lang, f"{target_lang}-IN")
 
-        # Auto-mode: modern-colloquial for short conversational dialogue, formal for longer narration
-        word_count = len(text.split())
-        translation_mode = "modern-colloquial" if word_count <= 30 else "formal"
+        # Strict Formal Mode: Indian regional languages use intense 'Code-Mixing' (Kanglish/Hinglish)
+        # in 'modern-colloquial' mode. To guarantee 100% pure Kannada/Hindi vocabulary for subtitles
+        # and dubbing, we MUST lock the translation mode to 'formal' regardless of sentence length.
+        translation_mode = "formal"
 
         headers = {
             "Content-Type": "application/json",
