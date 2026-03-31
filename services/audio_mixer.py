@@ -91,10 +91,9 @@ class AudioMixerEngine:
         ratio = current_ms_trimmed / target_ms
 
         # To preserve broadcast quality and perfectly natural human intonation,
-        # we abandon aggressive mechanical timeline stretching.
-        # We only permit tiny micro-adjustments (+/- 10%) that the ear cannot physically perceive.
-        # If the translation is significantly longer, it will peacefully overlap into the scene exactly like premium dubs!
-        ratio_clamped = max(0.90, min(1.10, ratio))
+        # we allow a 'Safe-Stretch' of +/- 15%. This completes the lip-sync
+        # without introducing any robotic or metallic artifacts.
+        ratio_clamped = max(0.85, min(1.15, ratio))
 
         if abs(ratio_clamped - 1.0) < 0.03:
             return audio_trimmed

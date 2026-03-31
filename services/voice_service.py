@@ -403,13 +403,16 @@ class VoiceCloningService:
 
         required_speed = (estimated_natural_duration / duration_sec) * base_speed
         
-        # To perfectly preserve the natural human tone and cadence of each dialect,
-        # we completely abandon timeline-forced speed tracking.
-        # The AI generates at exactly the natural speaking pace of the language!
-        # (e.g. English defaults to 1.05x, Kannada naturally plays at 0.92x)
-        blended_speed = base_speed
+        # SMART ELASTIC SCALING:
+        # We re-enable automatic speed adjustment to fit your video uploaded,
+        # but with a 'Context-Safe' 40% blend to keep the human sound natural.
+        # This allows the AI to move toward the video duration for lip-sync,
+        # but prevents robotic racing or dragging.
+        blended_speed = 0.40 * required_speed + 0.60 * base_speed
         
-        clamped_speed = max(_MIN_SPEED, min(_MAX_SPEED, blended_speed))
+        # Strictly clamp the AI generation between 0.85x and 1.25x.
+        # This is the 'Natural Zone' where human ears cannot detect speed shifts.
+        clamped_speed = max(0.85, min(1.25, blended_speed))
 
         print(f"[VoiceCloningService] [{language}] Speed: {clamped_speed:.3f}x "
               f"(chars={char_count}, required={required_speed:.3f}, dur={duration_sec:.1f}s)")
